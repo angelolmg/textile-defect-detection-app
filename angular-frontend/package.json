@@ -24,6 +24,7 @@
     "devextreme": "23.2.3",
     "devextreme-angular": "23.2.3",
     "devextreme-schematics": "^1.2.14",
+    "ngx-socket-io": "^4.6.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.12.0"

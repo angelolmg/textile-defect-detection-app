@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,14 +41,42 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:4200',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:4200',
+]
+
+# Allow credentials (cookies, authorization headers, etc.) to be included in CORS requests
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow specific headers in CORS requests
+CORS_ALLOW_HEADERS = [
+    'Accept',
+    'Accept-Encoding',
+    'Authorization',
+    'Content-Type',
+    'Origin',
+    'X-CSRFToken',
+]
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 ROOT_URLCONF = 'detection_server.urls'
 
