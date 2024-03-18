@@ -32,14 +32,28 @@ import shutil
 import ultralytics
 from ultralytics import YOLO
 from django.conf import settings
+from PIL import Image
+import base64
+import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import json
+import io
+
+def create_folder(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
 
 # Global variables
 FRAME_SKIP = 119
 processing = False
-files_folder = os.path.join(settings.BASE_DIR, 'detection_server', 'files')
-working_folder = os.path.join(settings.BASE_DIR, 'detection_server', 'working')
-frames_folder = os.path.join(working_folder, "frames")
-ready_folder = os.path.join(working_folder, "ready")
+files_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'files'))
+working_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'working'))
+frames_folder = create_folder(os.path.join(working_folder, "frames"))
+ready_folder = create_folder(os.path.join(working_folder, "ready"))
+
 
 def search_video_to_process_in_files_folder():
     global processing
@@ -119,9 +133,11 @@ def save_entries_to_csv(csv_file, entries):
     # Save the DataFrame to the CSV file
     df.to_csv(csv_file, mode=mode, index=False, header=not file_exists)
 
-def process_frames_in_frames_folder(model):
+def process_frames_in_frames_folder():
+    global model
     while True:
-        frame_files = [f for f in os.listdir(frames_folder)]
+        frame_files = [f for f in os.listdir(frames_folder) if f.startswith('frame_') and f.endswith('.jpg')]
+        frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
 
         if frame_files:
             frame_to_process = frame_files[0]
@@ -214,7 +230,7 @@ thread.start()
 model_file = os.path.join(settings.BASE_DIR, 'detection_server', 'models', 'yolov8s-cls_tilda400_50ep', 'weights', 'best.pt')
 model = YOLO(model_file)
 print(model.names)
-process_frames_in_frames_folder_thread = threading.Thread(target=process_frames_in_frames_folder, args=(model))
+process_frames_in_frames_folder_thread = threading.Thread(target=process_frames_in_frames_folder)
 process_frames_in_frames_folder_thread.daemon = True
 process_frames_in_frames_folder_thread.start()
 
