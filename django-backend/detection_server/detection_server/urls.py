@@ -16,18 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import upload_file
+from .views import upload_file, get_frame_info
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('upload/', upload_file, name='upload_file'),
+    path('get-frame/', get_frame_info, name='get_frame'),
 ]
 
 import os
 import threading
 import time
 import cv2
-import os
 import shutil
 import ultralytics
 from ultralytics import YOLO
@@ -74,9 +74,6 @@ def search_video_to_process_in_files_folder():
 
             print(f"Processing video file: {video_file}")
             # Perform further processing here (e.g., analysis, conversion, etc.)
-
-            # Once processing is complete, set processing flag back to False
-            # processing = False
 
         # Wait for 5 seconds before checking again
         time.sleep(5)
@@ -144,8 +141,11 @@ def process_frames_in_frames_folder():
             frame_path = os.path.join(frames_folder, frame_to_process)
             destination_path = os.path.join(ready_folder, frame_to_process)
 
-            # Read the frame
+            # Read the frame, grayscale, resize frame
             input_image = cv2.imread(frame_path)
+            gray_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+            input_image = cv2.merge((gray_image, gray_image, gray_image))
+            input_image = cv2.resize(input_image, (768, 512))
 
             # Break the image into cells
             cell_size = 64
@@ -215,6 +215,8 @@ def process_frames_in_frames_folder():
             # Remove the processed frame from the frames folder
             os.remove(frame_path)
         else:
+            global processing
+            processing = False
             print('No files to process in frames folder.')
 
         # Wait for 5 seconds before checking again

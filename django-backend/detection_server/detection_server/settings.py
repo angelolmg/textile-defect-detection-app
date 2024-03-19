@@ -53,10 +53,12 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',
+    'http://127.0.0.1:4200'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:4200',
+    'http://127.0.0.1:4200'
 ]
 
 # Allow credentials (cookies, authorization headers, etc.) to be included in CORS requests
@@ -70,7 +72,7 @@ CORS_ALLOW_HEADERS = [
     'Content-Type',
     'Origin',
     'X-CSRFToken',
-]
+]  
 
 CHANNEL_LAYERS = {
     'default': {
