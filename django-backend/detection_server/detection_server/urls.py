@@ -41,19 +41,108 @@ import pandas as pd
 import json
 import io
 
+# ANSI escape codes for text formatting
+RESET = "\033[0m"
+BOLD = "\033[1m"
+UNDERLINE = "\033[4m"
+
+# ANSI escape codes for text colors
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+WHITE = "\033[37m"
+
+# Get images from feed only every FRAME_SKIP frames
+# SECONDS TO SKIP = VIDEO ORIGINAL HEIGHT / (VIDEO ORIGINAL FPS * VIDEO SPEED PER FRAME IN PIXELS)
+# SECONDS TO SKIP = 600 / (60 * 5) = 2
+# FRAMES TO SKIP = (VIDEO ORIGINAL FPS * SECONDS TO SKIP) - 1 = (60 * 2) - 1 = 119
+FRAME_SKIP = 119
+CLOCK_SECS = 1
+ROLLMAP_XLIMIT = 80
+
+# Considering 512px = 15cm, 0.3 is the approximate ratio px/cm
+CAM_FRAME_HEIGHT_PX = 512
+CAM_FRAME_HEIGHT_CM = 15
+
 def create_folder(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     return folder_path
 
 # Global variables
-FRAME_SKIP = 119
 processing = False
 files_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'files'))
 working_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'working'))
 frames_folder = create_folder(os.path.join(working_folder, "frames"))
 ready_folder = create_folder(os.path.join(working_folder, "ready"))
+defects_data_csv_path = os.path.join(settings.BASE_DIR, 'detection_server', "defects.csv")
+rollmaps_folder = create_folder(os.path.join(settings.BASE_DIR, 'rollmaps'))
 
+defect_summary_data = {
+        'Elapsed time (s)': 0,
+        'Captures': 0,
+        'Speed (m/min)': 49.6,
+        'Position (m)': 0,
+        'Defect Count': 0
+    }
+
+
+def split_list_by_limit(input_list, limit):
+    result = []
+    current_sum = 0
+    curr_limit = limit
+    sublist = []
+
+    for value in input_list:
+        if value <= curr_limit:
+            sublist.append(value)
+        else:
+            result.append(sublist)
+            sublist = [value]
+            curr_limit += limit
+
+    if sublist:
+        result.append(sublist)
+
+    return result
+
+
+def split_list_into_structure(input_list, structure):
+    result = []
+    idx = 0
+
+    for length in structure:
+        sublist = input_list[idx: idx + length]
+        result.append(sublist)
+        idx += length
+
+    return result
+
+
+def save_entries_to_csv(csv_file, entries):
+    # Check if CSV file already exists
+    file_exists = os.path.exists(csv_file)
+
+    # Convert the list of dictionaries to a pandas DataFrame
+    df = pd.DataFrame(entries)
+
+    # If the file exists, append to it; otherwise, create a new file
+    if file_exists:
+        mode = 'a'
+    else:
+        mode = 'w'
+
+    # Save the DataFrame to the CSV file
+    df.to_csv(csv_file, mode=mode, index=False, header=not file_exists)
+
+
+def read_entries_from_csv(csv_file):
+    df = pd.read_csv(csv_file)
+    entries = df.values.tolist()
+    return entries
 
 def search_video_to_process_in_files_folder():
     global processing
@@ -79,6 +168,7 @@ def search_video_to_process_in_files_folder():
         time.sleep(5)
 
 def break_video_in_working_folder_into_frames():
+    global defect_summary_data
     while True:
         video_files = [f for f in os.listdir(working_folder) if f.endswith('.mp4')]
         if video_files:
@@ -99,6 +189,7 @@ def break_video_in_working_folder_into_frames():
                 if frame_count % FRAME_SKIP == 0:
                     frame_path = os.path.join(frames_folder, f"frame_{frame_count}.jpg")
                     cv2.imwrite(frame_path, frame)
+                    defect_summary_data['Captures'] += 1
 
                 success, frame = cap.read()
                 frame_count += 1
@@ -114,24 +205,8 @@ def break_video_in_working_folder_into_frames():
         # Wait for 5 seconds before checking again
         time.sleep(5)
 
-def save_entries_to_csv(csv_file, entries):
-    # Check if CSV file already exists
-    file_exists = os.path.exists(csv_file)
-
-    # Convert the list of dictionaries to a pandas DataFrame
-    df = pd.DataFrame(entries)
-
-    # If the file exists, append to it; otherwise, create a new file
-    if file_exists:
-        mode = 'a'
-    else:
-        mode = 'w'
-
-    # Save the DataFrame to the CSV file
-    df.to_csv(csv_file, mode=mode, index=False, header=not file_exists)
-
 def process_frames_in_frames_folder():
-    global model
+    global model, defect_summary_data
     while True:
         frame_files = [f for f in os.listdir(frames_folder) if f.startswith('frame_') and f.endswith('.jpg')]
         frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
@@ -173,8 +248,11 @@ def process_frames_in_frames_folder():
                     marked_images.append(images[i])
                     marked_coordinates.append(image_coordinates[i])
 
-            print("[process_frames_in_frames_folder] Number of patches with defect:", len(marked_images))
-            print("[process_frames_in_frames_folder] Ratio defect/good:", len(marked_images)/len(images)*100, "%")
+            print(GREEN + "[process_image]" + RESET +
+                f' Number of patches with defect: {len(marked_images)}')
+            print(GREEN + "[process_image]" + RESET +
+                f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
+            defect_summary_data['Defect Count'] += len(marked_images)
 
             # Save defect images to dictionary
             classes = ['good', 'hole', 'objects', 'oil spot', 'thread error']
@@ -193,8 +271,7 @@ def process_frames_in_frames_folder():
                                     'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                     'img_base64': base64_image})
 
-                # Print new entries
-                print("New entry:", new_entries[-1])
+            save_entries_to_csv(defects_data_csv_path, new_entries)
 
             # Color the input image using colored markings
             color_mapping = {
@@ -212,6 +289,8 @@ def process_frames_in_frames_folder():
             cv2.imwrite(destination_path, input_image)
             print(f"Moved {frame_to_process} to ready folder")
 
+            create_defect_scatter_plot()
+
             # Remove the processed frame from the frames folder
             os.remove(frame_path)
         else:
@@ -222,6 +301,76 @@ def process_frames_in_frames_folder():
         # Wait for 5 seconds before checking again
         time.sleep(5)
 
+def create_defect_scatter_plot():
+    global defect_summary_data
+    # Check if the 'defects.csv' file exists
+    if not os.path.exists(defects_data_csv_path):
+        print(
+            YELLOW + "[create_defect_scatter_plot]" + RESET + f" No {defects_data_csv_path} file found.")
+        return -1
+
+    # Read data from the CSV file using pandas
+    df = pd.read_csv(defects_data_csv_path)
+
+    x_positions = []
+    y_positions = []
+    defect_class_color = []
+
+    # Get number of last detected frame to calculate actual cam position
+    defect_summary_data['Position (m)'] = (
+        (df.iloc[-1]['frame_pos'] + 1) + 1) * CAM_FRAME_HEIGHT_CM / 100
+
+    classes = {'hole': 'red', 'objects': 'blue',
+               'oil spot': 'green', 'thread error': 'brown'}
+
+    for index, entry in df.iterrows():
+        frame_pos = int(entry['frame_pos'])
+        frame_class = entry['class']
+        pos_x = int(entry['pos_x'])
+        pos_y = int(entry['pos_y'])
+
+        # For 512px = 15cm, 0.3 is the approximate ratio px/cm
+        ratio = CAM_FRAME_HEIGHT_CM/CAM_FRAME_HEIGHT_PX
+        x_positions.append(ratio * (frame_pos * CAM_FRAME_HEIGHT_PX + pos_y))
+        y_positions.append(pos_x * ratio)
+        defect_class_color.append(classes[frame_class])
+
+    # If any position goes over limit it breaks it down into multiple lists
+    x_positions = split_list_by_limit(x_positions, ROLLMAP_XLIMIT)
+
+    # Match the same broken down structure of x_position to the others
+    y_positions = split_list_into_structure(
+        y_positions, [len(sublist) for sublist in x_positions])
+    defect_class_color = split_list_into_structure(
+        defect_class_color, [len(sublist) for sublist in x_positions])
+
+    plot_index = -1
+
+    for info in zip(x_positions, y_positions, defect_class_color):
+        plot_index += 1
+        x, y, c = info
+        plt.figure(figsize=(8.7, 3), dpi=100)
+        scatter = plt.scatter(x, y, marker='o', color=c)
+
+        # Create a custom legend
+        legend_labels = [plt.Line2D([0], [0], marker='o', color='w', label=class_name,
+                                    markerfacecolor=class_color) for class_name, class_color in classes.items()]
+
+        plt.legend(handles=legend_labels, loc='upper right',
+                   bbox_to_anchor=(1.24, 1.0))
+
+        plt.xlim(ROLLMAP_XLIMIT * plot_index - 5,
+                 ROLLMAP_XLIMIT * (plot_index + 1))
+        plt.ylim(-2, 24)
+        plt.xlabel('Vertical position (cm)')
+        plt.ylabel('Horizontal position (cm)')
+        plt.grid(True)
+        save_path = os.path.join(
+            rollmaps_folder, f'rollmap_plot_{plot_index}.png')
+        plt.savefig(save_path, bbox_inches='tight')
+        plt.close()
+
+    return plot_index
 
 # Start the thread
 thread = threading.Thread(target=search_video_to_process_in_files_folder)
