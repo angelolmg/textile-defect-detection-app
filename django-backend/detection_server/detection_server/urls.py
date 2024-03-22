@@ -78,10 +78,10 @@ files_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server',
 working_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'working'))
 frames_folder = create_folder(os.path.join(working_folder, "frames"))
 ready_folder = create_folder(os.path.join(working_folder, "ready"))
-defects_data_csv_path = os.path.join(settings.BASE_DIR, 'detection_server', "defects.csv")
-rollmaps_folder = create_folder(os.path.join(settings.BASE_DIR, 'rollmaps'))
+defects_data_csv_path = os.path.join(working_folder, "defects.csv")
+rollmaps_folder = create_folder(os.path.join(working_folder, 'rollmaps'))
 
-defect_summary_data = {
+defect_summary_data = { 
         'Elapsed time (s)': 0,
         'Captures': 0,
         'Speed (m/min)': 49.6,
@@ -353,11 +353,11 @@ def create_defect_scatter_plot():
         scatter = plt.scatter(x, y, marker='o', color=c)
 
         # Create a custom legend
-        legend_labels = [plt.Line2D([0], [0], marker='o', color='w', label=class_name,
-                                    markerfacecolor=class_color) for class_name, class_color in classes.items()]
+        # legend_labels = [plt.Line2D([0], [0], marker='o', color='w', label=class_name,
+        #                             markerfacecolor=class_color) for class_name, class_color in classes.items()]
 
-        plt.legend(handles=legend_labels, loc='upper right',
-                   bbox_to_anchor=(1.24, 1.0))
+        # plt.legend(handles=legend_labels, loc='upper right',
+        #            bbox_to_anchor=(1.24, 1.0))
 
         plt.xlim(ROLLMAP_XLIMIT * plot_index - 5,
                  ROLLMAP_XLIMIT * (plot_index + 1))
@@ -366,7 +366,7 @@ def create_defect_scatter_plot():
         plt.ylabel('Horizontal position (cm)')
         plt.grid(True)
         save_path = os.path.join(
-            rollmaps_folder, f'rollmap_plot_{plot_index}.png')
+            rollmaps_folder, f'rollmap_plot_{plot_index}.jpg')
         plt.savefig(save_path, bbox_inches='tight')
         plt.close()
 

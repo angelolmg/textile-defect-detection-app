@@ -2,6 +2,10 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Subscription, catchError, interval, of, switchMap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
+interface ClassColors {
+  [key: string]: string;
+}
+
 @Component({
   templateUrl: 'home.component.html',
   styleUrls: ['./home.component.scss'],
@@ -12,6 +16,20 @@ export class HomeComponent {
   currentImageSource = '';
   imageChangeSubscription: Subscription = new Subscription();
   loading: boolean = false;
+  rollmaps: any[] = [];
+  currentRollmapIndex: number = 0;
+
+  classes: ClassColors = {
+    'hole': 'red',
+    'objects': 'blue',
+    'oil spot': 'green',
+    'thread error': 'brown'
+  };
+
+  // Get the keys of the classes object
+  getClassNames(): string[] {
+    return Object.keys(this.classes);
+  }
 
   ngOnInit() {
     this.update_image();
@@ -28,7 +46,8 @@ export class HomeComponent {
                 this.loading = false;
                 return of(null); // Return an observable with a null value to continue the observable chain
               } else {
-                throw error; // Re-throw the error for other status codes
+                console.error('Error occurred:', error);
+                return of(null); // Continue the observable chain even if an error occurs
               }
             })
           );
@@ -40,28 +59,15 @@ export class HomeComponent {
             console.log(response);
 
             // Display the received image on the img tag
-            const imageData = this.arrayBufferToBase64(response.image_data);
             this.currentImageSource =
-              'data:image/jpeg;charset=utf-8;base64,' + response.image_data;
-            console.log(this.currentImageSource);
+              'data:image/jpeg;charset=utf-8;base64,' + response.frame_data;
+            this.rollmaps = response.rollmaps;  
           }
         },
         (error) => {
-          console.error(error);
+          console.error('Error occurred in subscription:', error);
         }
       );
-  }
-
-  arrayBufferToBase64(buffer: ArrayBuffer): string {
-    console.log(buffer);
-
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
   }
 
   ngOnDestroy() {
@@ -76,15 +82,13 @@ export class HomeComponent {
 
   onFileSelected(event: any): void {
     this.selectedFile = event.target.files[0];
-    
+
     if (this.selectedFile) {
       this.selectedFileName = this.selectedFile.name;
     } else {
       this.selectedFileName = '';
     }
   }
-
-
 
   onSubmit(event: any): void {
     event.preventDefault(); // Prevent the default form submission behavior
@@ -101,5 +105,26 @@ export class HomeComponent {
         console.error('Error uploading file:', error);
       }
     );
+  }
+
+  get currentRollmapImage(): string {
+    return this.rollmaps.length > 0
+      ? 'data:image/jpeg;charset=utf-8;base64,' + this.rollmaps[this.currentRollmapIndex]
+      : '';
+  }
+
+  nextRollmapImage(): void {
+    if (this.rollmaps.length > 0) {
+      this.currentRollmapIndex =
+        (this.currentRollmapIndex + 1) % this.rollmaps.length;
+    }
+  }
+
+  prevRollmapImage(): void {
+    if (this.rollmaps.length > 0) {
+      this.currentRollmapIndex =
+        (this.currentRollmapIndex - 1 + this.rollmaps.length) %
+        this.rollmaps.length;
+    }
   }
 }

@@ -22,34 +22,39 @@ def upload_file(request):
 def get_frame_info(request):
     working_folder = os.path.join(settings.BASE_DIR, 'detection_server', 'working')
     ready_folder = os.path.join(working_folder, "ready")
+    rollmaps_folder = os.path.join(working_folder, 'rollmaps')
 
     ready_files = [f for f in os.listdir(ready_folder) if f.startswith('frame_') and f.endswith('.jpg')]
-    ready_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0])) 
+    ready_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
 
-    # Check if there are any images ready to send
     if ready_files:
-        # Path to the first image file in the sorted list
-        frame_to_process = ready_files[0] 
-        image_path = os.path.join(ready_folder, frame_to_process)
+        frame_to_process = ready_files[0]
+        frame_path = os.path.join(ready_folder, frame_to_process)
 
-        # Read the image file content
-        with open(image_path, 'rb') as image_file:
-            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+        with open(frame_path, 'rb') as frame_file:
+            frame_data = base64.b64encode(frame_file.read()).decode('utf-8')
 
-        # Additional information about the image (if needed)
-        image_info = {'title': 'Image Title', 'description': 'Image Description'} 
+        image_info = {'title': 'Frame Image', 'description': 'Frame Image Description'}
 
-        # Create an HttpResponse object with the image data as content
-        response = HttpResponse(content=image_data, content_type='image/jpeg')
+        frame_response = HttpResponse(content=frame_data, content_type='image/jpeg')
+        frame_response['Content-Disposition'] = 'attachment; filename="frame.jpg"'
 
-        # Set additional headers (optional)
-        response['Content-Disposition'] = 'attachment; filename="image.jpg"'
+        os.remove(frame_path)
 
-        # Remove the processed image file
-        os.remove(image_path)
-
-        # Return the JSON response with the image data and additional information
-        return JsonResponse({'image_info': image_info, 'image_data': response.content.decode('latin1')})
+        rollmaps_images = []
+        if os.path.exists(rollmaps_folder):
+            rollmaps_files = [f for f in os.listdir(rollmaps_folder) if f.endswith('.jpg')]
+            for rollmap_file in rollmaps_files:
+                rollmap_path = os.path.join(rollmaps_folder, rollmap_file)
+                with open(rollmap_path, 'rb') as rollmap_file:
+                    rollmap_data = base64.b64encode(rollmap_file.read()).decode('utf-8')
+                    rollmaps_images.append(rollmap_data)
     else:
-        # Return a JSON response indicating that there are no images available
         return JsonResponse({'message': 'No images available'}, status=404)
+
+    return JsonResponse({
+        'frame_info': image_info,
+        'frame_data': frame_data,
+        'rollmaps': rollmaps_images,
+        'message': f'Found image and {len(rollmaps_images)} rollmaps'
+    }, status=200)
