@@ -1,9 +1,17 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { Subscription, catchError, interval, of, switchMap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 interface ClassColors {
   [key: string]: string;
+}
+
+class SummaryData {
+  elapsed_time: number = 0;
+  captures: number = 0;
+  speed: number = 0;
+  position: number = 0;
+  defect_count: number = 0;
 }
 
 @Component({
@@ -13,6 +21,9 @@ interface ClassColors {
 export class HomeComponent {
   constructor(private http: HttpClient) {}
 
+  summaryData: SummaryData = new SummaryData();
+  sessionNumber: number = 0;
+
   currentImageSource = '';
   imageChangeSubscription: Subscription = new Subscription();
   loading: boolean = false;
@@ -20,10 +31,10 @@ export class HomeComponent {
   currentRollmapIndex: number = 0;
 
   classes: ClassColors = {
-    'hole': 'red',
-    'objects': 'blue',
+    hole: 'red',
+    objects: 'blue',
     'oil spot': 'green',
-    'thread error': 'brown'
+    'thread error': 'brown',
   };
 
   // Get the keys of the classes object
@@ -61,7 +72,8 @@ export class HomeComponent {
             // Display the received image on the img tag
             this.currentImageSource =
               'data:image/jpeg;charset=utf-8;base64,' + response.frame_data;
-            this.rollmaps = response.rollmaps;  
+            this.rollmaps = response.rollmaps;
+            this.summaryData = response.summary;
           }
         },
         (error) => {
@@ -109,7 +121,8 @@ export class HomeComponent {
 
   get currentRollmapImage(): string {
     return this.rollmaps.length > 0
-      ? 'data:image/jpeg;charset=utf-8;base64,' + this.rollmaps[this.currentRollmapIndex]
+      ? 'data:image/jpeg;charset=utf-8;base64,' +
+          this.rollmaps[this.currentRollmapIndex]
       : '';
   }
 
@@ -126,5 +139,13 @@ export class HomeComponent {
         (this.currentRollmapIndex - 1 + this.rollmaps.length) %
         this.rollmaps.length;
     }
+  }
+
+  clearSessions() {
+    this.http
+      .get<any>('http://localhost:8000/reset-sessions/')
+      .subscribe((response) => {
+        console.log(response.message);
+      });
   }
 }

@@ -21,31 +21,52 @@
 <div class="content-block" style="margin-top: 1rem;">
   <div class="dx-card responsive-paddings">
     <div class="main-panel">
-      <div class="left-side">
-        <ng-container *ngIf="currentImageSource; else camdefault" >
-          <img class="fill-div" [src]="currentImageSource">
-        </ng-container>
-        <ng-template #camdefault>
-          <img class="fill-div" src="assets/cam_default.jpg">
-        </ng-template>
-      </div>
 
-      <div class="right-side">
+      <span>Session: {{ sessionNumber ? sessionNumber : '' }}</span>
 
-        <ng-container *ngIf="currentRollmapImage; else statsdefault" >
-          <div *ngIf="currentRollmapImage" class="carousel-container">
-            <img class="carousel-image" [src]="currentRollmapImage">
-            <div class="carousel-arrows">
-              <span (click)="prevRollmapImage()" class="arrow left-arrow">&lt;</span>
-              <span (click)="nextRollmapImage()" class="arrow right-arrow">&gt;</span>
-            </div>
-          </div> 
-
-        </ng-container>
-        <ng-template #statsdefault>
-          <img class="fill-div" src="assets/stats_default.jpg">
-        </ng-template>
+      <div class="upper-pannel">
+        <div class="left-side">
+          <ng-container *ngIf="currentImageSource; else camdefault" >
+            <img class="fill-div" [src]="currentImageSource">
+          </ng-container>
+          <ng-template #camdefault>
+            <img class="fill-div" src="assets/cam_default.jpg">
+          </ng-template>
+        </div>
   
+        <div class="right-side">
+          <ng-container *ngIf="currentRollmapImage; else statsdefault" >
+            <div *ngIf="currentRollmapImage" class="carousel-container">
+              <img class="carousel-image" [src]="currentRollmapImage">
+              <div class="carousel-arrows">
+                <span (click)="prevRollmapImage()" class="arrow left-arrow">&lt;</span>
+                <span (click)="nextRollmapImage()" class="arrow right-arrow">&gt;</span>
+              </div>
+            </div> 
+  
+          </ng-container>
+          <ng-template #statsdefault>
+            <img class="fill-div" src="assets/stats_default.jpg">
+          </ng-template>
+    
+        </div>
+      </div>
+      
+      <div class="status-bar">
+        <button class="status-bar__button status-bar__button--play">
+          <span class="material-icons">▶</span>
+        </button>
+        <button class="status-bar__button status-bar__button--pause">
+          <span class="material-icons">❚❚</span>
+        </button>
+        <button (click)="clearSessions()" class="status-bar__button status-bar__button--reset">
+          <span class="material-icons">♻</span>
+        </button>
+        <span class="status-bar__item">Elapsed time (s): {{ summaryData.elapsed_time }}</span>
+        <span class="status-bar__item">Captures: {{ summaryData.captures }}</span>
+        <span class="status-bar__item">Speed (m/min): {{ summaryData.speed }}</span>
+        <span class="status-bar__item">Position (m): {{ summaryData.position }}</span>
+        <span class="status-bar__item">Defect Count: {{ summaryData.defect_count }}</span>
       </div>
     </div>
 

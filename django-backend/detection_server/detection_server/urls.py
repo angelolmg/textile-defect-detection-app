@@ -16,12 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import upload_file, get_frame_info
+from .views import upload_file, get_frame_info, reset_sessions
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('upload/', upload_file, name='upload_file'),
     path('get-frame/', get_frame_info, name='get_frame'),
+    path('reset-sessions/', reset_sessions, name='reset_sessions'),
 ]
 
 import os
@@ -74,12 +75,14 @@ def create_folder(folder_path):
 
 # Global variables
 processing = False
-files_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'files'))
+active_session = None
+
 working_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server', 'working'))
-frames_folder = create_folder(os.path.join(working_folder, "frames"))
-ready_folder = create_folder(os.path.join(working_folder, "ready"))
-defects_data_csv_path = os.path.join(working_folder, "defects.csv")
-rollmaps_folder = create_folder(os.path.join(working_folder, 'rollmaps'))
+session_folder = None
+frames_folder = None
+ready_folder = None
+defects_data_csv_path = None
+rollmaps_folder = None
 
 defect_summary_data = { 
         'Elapsed time (s)': 0,
@@ -89,6 +92,39 @@ defect_summary_data = {
         'Defect Count': 0
     }
 
+# Function to check active_session.json and update global variable if necessary
+def check_active_session():
+    global active_session, session_folder, frames_folder, ready_folder, rollmaps_folder, defects_data_csv_path
+    while True:
+        print(RED + "[check_active_session]"  + RESET + " Checking for changes in active session...")
+        try:
+            active_session_file_path = os.path.join(settings.BASE_DIR, 'detection_server', 'active_session.json')
+            if os.path.exists(active_session_file_path):
+                with open(active_session_file_path, 'r') as active_session_file:
+                    data = json.load(active_session_file)
+                    new_active_session = data.get('active_session')
+
+                    # If there's no active session 
+                    # or new active session is different then current, change it
+                    if not active_session or int(new_active_session) != int(active_session):
+                        active_session = new_active_session
+
+                        print(RED + "[check_active_session]"  + RESET + f" Active session changed from {active_session} to {new_active_session}")
+
+                        # Construct folder path for the new active session
+                        session_folder = os.path.join(working_folder, new_active_session)
+
+                        # Create necessary folders/files inside session folder
+                        frames_folder = create_folder(os.path.join(session_folder, "frames"))
+                        ready_folder = create_folder(os.path.join(session_folder, "ready"))
+                        defects_data_csv_path = os.path.join(session_folder, "defects.csv")
+                        rollmaps_folder = create_folder(os.path.join(session_folder, 'rollmaps'))
+            else:
+                print(RED + "[check_active_session]" + RESET + " No session folder found")
+
+            time.sleep(5)  # Check every 5 seconds
+        except Exception as e:
+            print("Error occurred:", e)
 
 def split_list_by_limit(input_list, limit):
     result = []
@@ -109,7 +145,6 @@ def split_list_by_limit(input_list, limit):
 
     return result
 
-
 def split_list_into_structure(input_list, structure):
     result = []
     idx = 0
@@ -120,7 +155,6 @@ def split_list_into_structure(input_list, structure):
         idx += length
 
     return result
-
 
 def save_entries_to_csv(csv_file, entries):
     # Check if CSV file already exists
@@ -138,69 +172,43 @@ def save_entries_to_csv(csv_file, entries):
     # Save the DataFrame to the CSV file
     df.to_csv(csv_file, mode=mode, index=False, header=not file_exists)
 
-
 def read_entries_from_csv(csv_file):
     df = pd.read_csv(csv_file)
     entries = df.values.tolist()
     return entries
 
-def search_video_to_process_in_files_folder():
-    global processing
-
-    while True:
-        # Check if there are any video files in the 'files' directory
-        print('Searching videos to process in the files folder...')
-        files_folder_files = os.listdir(files_folder)
-        video_files = [file for file in files_folder_files if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', 'wmv.'))]
-
-        if video_files and not processing:
-            # If there are video files and not already processing, set processing flag to True
-            processing = True
-            video_file = video_files[0]  # Assuming you want to process the first video file found
-
-            # Move the video file to the 'working' directory
-            shutil.move(os.path.join(files_folder, video_file), working_folder)
-
-            print(f"Processing video file: {video_file}")
-            # Perform further processing here (e.g., analysis, conversion, etc.)
-
-        # Wait for 5 seconds before checking again
-        time.sleep(5)
-
-def break_video_in_working_folder_into_frames():
+def break_video_into_frames():
     global defect_summary_data
     while True:
-        video_files = [f for f in os.listdir(working_folder) if f.endswith('.mp4')]
-        if video_files:
-            video_file = video_files[0]  # Assume only one video file in the folder
-            video_path = os.path.join(working_folder, video_file)
-            frames_folder = os.path.join(working_folder, "frames")
+        print(BLUE + "[break_video_into_frames]" + RESET + " Searching for new videos in session...")
 
-            # Create frames folder if it doesn't exist
-            os.makedirs(frames_folder, exist_ok=True)
+        if session_folder and os.path.exists(session_folder):
+            video_files = [f for f in os.listdir(session_folder) if f.endswith('.mp4')]
+            if video_files:
+                print(BLUE + "[break_video_into_frames]" + RESET + " Found new video in session folder!")
+                video_file = video_files[0]  # Assume only one video file in the folder
+                video_path = os.path.join(session_folder, video_file)
 
-            # Open the video file
-            cap = cv2.VideoCapture(video_path)
+                # Open the video file
+                cap = cv2.VideoCapture(video_path)
 
-            frame_count = 0
-            success, frame = cap.read()
-
-            while success:
-                if frame_count % FRAME_SKIP == 0:
-                    frame_path = os.path.join(frames_folder, f"frame_{frame_count}.jpg")
-                    cv2.imwrite(frame_path, frame)
-                    defect_summary_data['Captures'] += 1
-
+                frame_count = 0
                 success, frame = cap.read()
-                frame_count += 1
 
-            # Release the video capture object
-            cap.release()
+                while success:
+                    if frame_count % FRAME_SKIP == 0:
+                        frame_path = os.path.join(frames_folder, f"frame_{frame_count}.jpg")
+                        cv2.imwrite(frame_path, frame)
+                        defect_summary_data['Captures'] += 1
 
-            # Delete the video file
-            os.remove(video_path)
-        else:
-            print("No video file found in the working folder.")
+                    success, frame = cap.read()
+                    frame_count += 1
+
+                # Release the video capture object
+                cap.release()
+
+                # Delete the video file
+                os.remove(video_path)
 
         # Wait for 5 seconds before checking again
         time.sleep(5)
@@ -208,95 +216,98 @@ def break_video_in_working_folder_into_frames():
 def process_frames_in_frames_folder():
     global model, defect_summary_data
     while True:
-        frame_files = [f for f in os.listdir(frames_folder) if f.startswith('frame_') and f.endswith('.jpg')]
-        frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
+        print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Searching for frames...")
 
-        if frame_files:
-            frame_to_process = frame_files[0]
-            frame_path = os.path.join(frames_folder, frame_to_process)
-            destination_path = os.path.join(ready_folder, frame_to_process)
+        if frames_folder and os.path.exists(frames_folder):
+            frame_files = [f for f in os.listdir(frames_folder) if f.startswith('frame_') and f.endswith('.jpg')]
+            frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
 
-            # Read the frame, grayscale, resize frame
-            input_image = cv2.imread(frame_path)
-            gray_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
-            input_image = cv2.merge((gray_image, gray_image, gray_image))
-            input_image = cv2.resize(input_image, (768, 512))
+            if frame_files:
+                print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Found frames!")
+                frame_to_process = frame_files[0]
+                frame_path = os.path.join(frames_folder, frame_to_process)
+                destination_path = os.path.join(ready_folder, frame_to_process)
 
-            # Break the image into cells
-            cell_size = 64
-            rows, cols, _ = input_image.shape
-            images = []
-            image_coordinates = []
-            for y in range(0, rows, cell_size):
-                for x in range(0, cols, cell_size):
-                    image = input_image[y:y+cell_size, x:x+cell_size]
-                    images.append(image)
-                    image_coordinates.append((x, y, x+cell_size, y+cell_size))
+                # Read the frame, grayscale, resize frame
+                input_image = cv2.imread(frame_path)
+                gray_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+                input_image = cv2.merge((gray_image, gray_image, gray_image))
+                input_image = cv2.resize(input_image, (768, 512))
 
-            print("[process_frames_in_frames_folder] Number of patches:", len(images))
+                # Break the image into cells
+                cell_size = 64
+                rows, cols, _ = input_image.shape
+                images = []
+                image_coordinates = []
+                for y in range(0, rows, cell_size):
+                    for x in range(0, cols, cell_size):
+                        image = input_image[y:y+cell_size, x:x+cell_size]
+                        images.append(image)
+                        image_coordinates.append((x, y, x+cell_size, y+cell_size))
 
-            # Defect inference
-            results = model.predict(source=images, conf=0.25)
+                print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Number of patches: {len(images)}")
 
-            # Filter defects
-            marked_images = []
-            top1 = []
-            marked_coordinates = []
-            for i in range(len(images)):
-                if results[i].probs.top1 != 0 and results[i].probs.top1conf > 0.99:
-                    top1.append(int(results[i].probs.top1))
-                    marked_images.append(images[i])
-                    marked_coordinates.append(image_coordinates[i])
+                # Defect inference
+                results = model.predict(source=images, conf=0.25)
 
-            print(GREEN + "[process_image]" + RESET +
-                f' Number of patches with defect: {len(marked_images)}')
-            print(GREEN + "[process_image]" + RESET +
-                f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
-            defect_summary_data['Defect Count'] += len(marked_images)
+                # Filter defects
+                marked_images = []
+                top1 = []
+                marked_coordinates = []
+                for i in range(len(images)):
+                    if results[i].probs.top1 != 0 and results[i].probs.top1conf > 0.99:
+                        top1.append(int(results[i].probs.top1))
+                        marked_images.append(images[i])
+                        marked_coordinates.append(image_coordinates[i])
 
-            # Save defect images to dictionary
-            classes = ['good', 'hole', 'objects', 'oil spot', 'thread error']
-            new_entries = []
-            for i in range(len(marked_images)):
-                # Convert the image to a base64 string
-                _, buffer = cv2.imencode('.jpg', marked_images[i])
-                base64_image = base64.b64encode(buffer).decode('utf-8')
-                index = int(frame_to_process.split('_')[1].split('.')[0])
-                new_entries.append({'frame_pos': int(index/FRAME_SKIP),
-                                    'frame_index': index,
-                                    'camera': 'Cam_0',
-                                    'class': classes[top1[i]],
-                                    'pos_x': marked_coordinates[i][0],
-                                    'pos_y': marked_coordinates[i][1],
-                                    'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                    'img_base64': base64_image})
+                print(GREEN + "[process_image]" + RESET +
+                    f' Number of patches with defect: {len(marked_images)}')
+                print(GREEN + "[process_image]" + RESET +
+                    f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
+                defect_summary_data['Defect Count'] += len(marked_images)
 
-            save_entries_to_csv(defects_data_csv_path, new_entries)
+                # Save defect images to dictionary
+                classes = ['good', 'hole', 'objects', 'oil spot', 'thread error']
+                new_entries = []
+                for i in range(len(marked_images)):
+                    # Convert the image to a base64 string
+                    _, buffer = cv2.imencode('.jpg', marked_images[i])
+                    base64_image = base64.b64encode(buffer).decode('utf-8')
+                    index = int(frame_to_process.split('_')[1].split('.')[0])
+                    new_entries.append({'frame_pos': int(index/FRAME_SKIP),
+                                        'frame_index': index,
+                                        'camera': 'Cam_0',
+                                        'class': classes[top1[i]],
+                                        'pos_x': marked_coordinates[i][0],
+                                        'pos_y': marked_coordinates[i][1],
+                                        'time': int(time.time()),
+                                        'img_base64': base64_image})
 
-            # Color the input image using colored markings
-            color_mapping = {
-                'good': (0, 255, 255),
-                'hole': (0, 0, 255),
-                'objects': (255, 0, 0),
-                'oil spot': (0, 255, 0),
-                'thread error': (42, 42, 165)
-            }
-            for i in range(len(marked_coordinates)):
-                x1, y1, x2, y2 = marked_coordinates[i]
-                cv2.rectangle(input_image, (x1, y1), (x2, y2), color_mapping[new_entries[i]['class']], 2)
+                save_entries_to_csv(defects_data_csv_path, new_entries)
 
-            # Save the colored image to the ready folder
-            cv2.imwrite(destination_path, input_image)
-            print(f"Moved {frame_to_process} to ready folder")
+                # Color the input image using colored markings
+                color_mapping = {
+                    'good': (0, 255, 255),
+                    'hole': (0, 0, 255),
+                    'objects': (255, 0, 0),
+                    'oil spot': (0, 255, 0),
+                    'thread error': (42, 42, 165)
+                }
+                for i in range(len(marked_coordinates)):
+                    x1, y1, x2, y2 = marked_coordinates[i]
+                    cv2.rectangle(input_image, (x1, y1), (x2, y2), color_mapping[new_entries[i]['class']], 2)
 
-            create_defect_scatter_plot()
+                # Save the colored image to the ready folder
+                cv2.imwrite(destination_path, input_image)
+                print(f"Moved {frame_to_process} to ready folder")
 
-            # Remove the processed frame from the frames folder
-            os.remove(frame_path)
-        else:
-            global processing
-            processing = False
-            print('No files to process in frames folder.')
+                create_defect_scatter_plot()
+
+                # Remove the processed frame from the frames folder
+                os.remove(frame_path)
+            else:
+                global processing
+                processing = False
 
         # Wait for 5 seconds before checking again
         time.sleep(5)
@@ -373,19 +384,18 @@ def create_defect_scatter_plot():
     return plot_index
 
 # Start the thread
-thread = threading.Thread(target=search_video_to_process_in_files_folder)
-thread.daemon = True  # Daemonize the thread so it will be terminated when the main program exits
-thread.start()
+active_session_thread = threading.Thread(target=check_active_session)
+active_session_thread.daemon = True
+active_session_thread.start()
 
 # Create and start the thread
 model_file = os.path.join(settings.BASE_DIR, 'detection_server', 'models', 'yolov8s-cls_tilda400_50ep', 'weights', 'best.pt')
 model = YOLO(model_file)
-print(model.names)
 process_frames_in_frames_folder_thread = threading.Thread(target=process_frames_in_frames_folder)
 process_frames_in_frames_folder_thread.daemon = True
 process_frames_in_frames_folder_thread.start()
 
 # Create and start the thread
-video_processing_thread = threading.Thread(target=break_video_in_working_folder_into_frames)
+video_processing_thread = threading.Thread(target=break_video_into_frames)
 video_processing_thread.daemon = True
 video_processing_thread.start()
