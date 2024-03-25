@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component } from '@angular/core';
 import { Subscription, catchError, interval, of, switchMap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
@@ -7,6 +7,7 @@ interface ClassColors {
 }
 
 class SummaryData {
+  session_id: string = '';
   elapsed_time: number = 0;
   captures: number = 0;
   speed: number = 0;
@@ -22,7 +23,6 @@ export class HomeComponent {
   constructor(private http: HttpClient) {}
 
   summaryData: SummaryData = new SummaryData();
-  sessionNumber: number = 0;
 
   currentImageSource = '';
   imageChangeSubscription: Subscription = new Subscription();
@@ -31,8 +31,8 @@ export class HomeComponent {
   currentRollmapIndex: number = 0;
 
   classes: ClassColors = {
-    hole: 'red',
-    objects: 'blue',
+    'hole': 'red',
+    'objects': 'blue',
     'oil spot': 'green',
     'thread error': 'brown',
   };
@@ -42,12 +42,16 @@ export class HomeComponent {
     return Object.keys(this.classes);
   }
 
+  get session_id(): string {
+    return this.summaryData.session_id ? this.summaryData.session_id : ''
+  }
+
   ngOnInit() {
     this.update_image();
   }
 
   update_image() {
-    this.imageChangeSubscription = interval(5000)
+    this.imageChangeSubscription = interval(1000)
       .pipe(
         switchMap(() => {
           return this.http.get<any>('http://localhost:8000/get-frame/').pipe(
@@ -70,8 +74,10 @@ export class HomeComponent {
             console.log(response);
 
             // Display the received image on the img tag
-            this.currentImageSource =
-              'data:image/jpeg;charset=utf-8;base64,' + response.frame_data;
+            if(response.frame_data) 
+              this.currentImageSource =
+                'data:image/jpeg;charset=utf-8;base64,' + response.frame_data;
+            
             this.rollmaps = response.rollmaps;
             this.summaryData = response.summary;
           }

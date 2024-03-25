@@ -22,7 +22,20 @@
   <div class="dx-card responsive-paddings">
     <div class="main-panel">
 
-      <span>Session: {{ sessionNumber ? sessionNumber : '' }}</span>
+      <div class="options-bar">
+        <span>Session: {{ session_id }}</span>
+        <div class="options-bar-buttons">
+          <button class="status-bar__button status-bar__button--play">
+            <span class="material-icons">▶</span>
+          </button>
+          <button class="status-bar__button status-bar__button--pause">
+            <span class="material-icons">❚❚</span>
+          </button>
+          <button (click)="clearSessions()" class="status-bar__button status-bar__button--reset">
+            <span class="material-icons">♻</span>
+          </button>
+        </div>    
+      </div>
 
       <div class="upper-pannel">
         <div class="left-side">
@@ -53,15 +66,6 @@
       </div>
       
       <div class="status-bar">
-        <button class="status-bar__button status-bar__button--play">
-          <span class="material-icons">▶</span>
-        </button>
-        <button class="status-bar__button status-bar__button--pause">
-          <span class="material-icons">❚❚</span>
-        </button>
-        <button (click)="clearSessions()" class="status-bar__button status-bar__button--reset">
-          <span class="material-icons">♻</span>
-        </button>
         <span class="status-bar__item">Elapsed time (s): {{ summaryData.elapsed_time }}</span>
         <span class="status-bar__item">Captures: {{ summaryData.captures }}</span>
         <span class="status-bar__item">Speed (m/min): {{ summaryData.speed }}</span>

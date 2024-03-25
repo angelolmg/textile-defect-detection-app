@@ -1,39 +1,26 @@
+import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import 'devextreme/data/odata/store';
 
 @Component({
-  templateUrl: 'tasks.component.html'
+  templateUrl: 'tasks.component.html',
+  styleUrls: ['./tasks.component.scss'],
 })
-
 export class TasksComponent {
-  dataSource: any;
-  priority: any[];
+  defectsData: any[] = [];
 
-  constructor() {
-    this.dataSource = {
-      store: {
-        version: 2,
-        type: 'odata',
-        key: 'Task_ID',
-        url: 'https://js.devexpress.com/Demos/DevAV/odata/Tasks'
+  constructor(private http: HttpClient) { }
+
+  ngOnInit(): void {
+    // Fetch defects data from the server
+    this.http.get<any>('http://localhost:8000/get-defects/').subscribe(
+      (response) => {
+        // Assuming the response contains defects data in an array
+        this.defectsData = response.defects;
       },
-      expand: 'ResponsibleEmployee',
-      select: [
-        'Task_ID',
-        'Task_Subject',
-        'Task_Start_Date',
-        'Task_Due_Date',
-        'Task_Status',
-        'Task_Priority',
-        'Task_Completion',
-        'ResponsibleEmployee/Employee_Full_Name'
-      ]
-    };
-    this.priority = [
-      { name: 'High', value: 4 },
-      { name: 'Urgent', value: 3 },
-      { name: 'Normal', value: 2 },
-      { name: 'Low', value: 1 }
-    ];
+      (error) => {
+        console.error('Error fetching defects data:', error);
+      }
+    );
   }
 }

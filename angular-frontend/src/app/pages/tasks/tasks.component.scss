@@ -1,0 +1,35 @@
+.table-container {
+    font-family: Arial, sans-serif;
+}
+
+table {
+    width: fill-available;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+thead {
+    background-color: #e6e6e6;
+    height: 4rem;
+}
+
+th,
+td {
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    // background-color: #cfcfcf;
+    color: #515151;
+}
+
+tr:nth-child(even) {
+    background-color: #e6e6e6;
+}
+
+
+tbody tr:hover {
+    cursor: pointer;
+    // background-color: #ff794e;
+}

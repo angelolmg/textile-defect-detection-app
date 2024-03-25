@@ -16,13 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import upload_file, get_frame_info, reset_sessions
+from .views import upload_file, get_frame_info, reset_sessions, get_defects_info
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('upload/', upload_file, name='upload_file'),
     path('get-frame/', get_frame_info, name='get_frame'),
     path('reset-sessions/', reset_sessions, name='reset_sessions'),
+    path('get-defects/', get_defects_info, name='defects_info')
 ]
 
 import os
@@ -81,7 +82,7 @@ working_folder = create_folder(os.path.join(settings.BASE_DIR, 'detection_server
 session_folder = None
 frames_folder = None
 ready_folder = None
-defects_data_csv_path = None
+defects_data_json_path = None
 rollmaps_folder = None
 
 defect_summary_data = { 
@@ -94,7 +95,7 @@ defect_summary_data = {
 
 # Function to check active_session.json and update global variable if necessary
 def check_active_session():
-    global active_session, session_folder, frames_folder, ready_folder, rollmaps_folder, defects_data_csv_path
+    global active_session, session_folder, frames_folder, ready_folder, rollmaps_folder, defects_data_json_path
     while True:
         print(RED + "[check_active_session]"  + RESET + " Checking for changes in active session...")
         try:
@@ -117,7 +118,7 @@ def check_active_session():
                         # Create necessary folders/files inside session folder
                         frames_folder = create_folder(os.path.join(session_folder, "frames"))
                         ready_folder = create_folder(os.path.join(session_folder, "ready"))
-                        defects_data_csv_path = os.path.join(session_folder, "defects.csv")
+                        defects_data_json_path = os.path.join(session_folder, "defects.json")
                         rollmaps_folder = create_folder(os.path.join(session_folder, 'rollmaps'))
             else:
                 print(RED + "[check_active_session]" + RESET + " No session folder found")
@@ -156,24 +157,23 @@ def split_list_into_structure(input_list, structure):
 
     return result
 
-def save_entries_to_csv(csv_file, entries):
-    # Check if CSV file already exists
-    file_exists = os.path.exists(csv_file)
+def save_entries_to_json(json_file, entries):
+    # Check if JSON file already exists
+    file_exists = os.path.exists(json_file)
 
     # Convert the list of dictionaries to a pandas DataFrame
     df = pd.DataFrame(entries)
 
-    # If the file exists, append to it; otherwise, create a new file
     if file_exists:
         mode = 'a'
     else:
         mode = 'w'
+    
+    # Save the DataFrame to the JSON file
+    df.to_json(json_file, mode=mode, orient='records', lines=True)
 
-    # Save the DataFrame to the CSV file
-    df.to_csv(csv_file, mode=mode, index=False, header=not file_exists)
-
-def read_entries_from_csv(csv_file):
-    df = pd.read_csv(csv_file)
+def read_entries_from_json(json_file):
+    df = pd.read_json(json_file)
     entries = df.values.tolist()
     return entries
 
@@ -283,7 +283,7 @@ def process_frames_in_frames_folder():
                                         'time': int(time.time()),
                                         'img_base64': base64_image})
 
-                save_entries_to_csv(defects_data_csv_path, new_entries)
+                save_entries_to_json(defects_data_json_path, new_entries)
 
                 # Color the input image using colored markings
                 color_mapping = {
@@ -314,14 +314,14 @@ def process_frames_in_frames_folder():
 
 def create_defect_scatter_plot():
     global defect_summary_data
-    # Check if the 'defects.csv' file exists
-    if not os.path.exists(defects_data_csv_path):
+    # Check if the 'defects.json' file exists
+    if not os.path.exists(defects_data_json_path):
         print(
-            YELLOW + "[create_defect_scatter_plot]" + RESET + f" No {defects_data_csv_path} file found.")
+            YELLOW + "[create_defect_scatter_plot]" + RESET + f" No {defects_data_json_path} file found.")
         return -1
 
-    # Read data from the CSV file using pandas
-    df = pd.read_csv(defects_data_csv_path)
+    # Read data from the JSON file using pandas
+    df = pd.read_json(defects_data_json_path, orient='records', lines=True)
 
     x_positions = []
     y_positions = []

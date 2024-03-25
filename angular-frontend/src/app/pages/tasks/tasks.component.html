@@ -1,70 +1,27 @@
-<h2 class="content-block">Tasks</h2>
-
-<dx-data-grid class="dx-card wide-card"
-  [dataSource]="dataSource"
-  [showBorders]="false"
-  [focusedRowEnabled]="true"
-  [focusedRowIndex]="0"
-  [columnAutoWidth]="true"
-  [columnHidingEnabled]="true">
-
-  <dxo-paging [pageSize]="10"></dxo-paging>
-  <dxo-pager [showPageSizeSelector]="true" [showInfo]="true"></dxo-pager>
-  <dxo-filter-row [visible]="true"></dxo-filter-row>
-
-  <dxi-column
-    dataField="Task_ID"
-    [width]="90"
-    [hidingPriority]="2">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Subject"
-    [width]="190"
-    caption="Subject"
-    [hidingPriority]="8">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Status"
-    caption="Status"
-    [hidingPriority]="6">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Priority"
-    caption="Priority"
-    [hidingPriority]="5">
-    <dxo-lookup
-      [dataSource]="priority"
-      valueExpr="value"
-      displayExpr="name">
-    </dxo-lookup>
-  </dxi-column>
-  <dxi-column
-    dataField="ResponsibleEmployee.Employee_Full_Name"
-    caption="Assigned To"
-    [allowSorting]="false"
-    [hidingPriority]="7">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Start_Date"
-    caption="Start Date"
-    dataType="date"
-    [hidingPriority]="3">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Due_Date"
-    caption="Due Date"
-    dataType="date"
-    [hidingPriority]="4">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Priority"
-    caption="Priority"
-    name="Priority"
-    [hidingPriority]="1">
-  </dxi-column>
-  <dxi-column
-    dataField="Task_Completion"
-    caption="Completion"
-    [hidingPriority]="0">
-  </dxi-column>
-</dx-data-grid>
+<h2 class="content-block">Defects</h2>
+<table class="content-block"> 
+  <thead>
+    <tr>
+      <th>Frame Position</th>
+      <th>Frame Index</th>
+      <th>Camera</th>
+      <th>Class</th>
+      <th>Position X</th>
+      <th>Position Y</th>
+      <th>Time</th>
+      <th>Image</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let defect of defectsData">
+      <td>{{ defect.frame_pos }}</td>
+      <td>{{ defect.frame_index }}</td>
+      <td>{{ defect.camera }}</td>
+      <td>{{ defect.class }}</td>
+      <td>{{ defect.pos_x }}</td>
+      <td>{{ defect.pos_y }}</td>
+      <td>{{ defect.time * 1000 | date:'d/M/yy, h:mm:ss a' }}</td>
+      <td><img src="data:image/jpeg;charset=utf-8;base64, {{defect.img_base64}}" alt=""></td>
+    </tr>
+  </tbody>
+</table>
