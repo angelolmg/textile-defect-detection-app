@@ -5,7 +5,7 @@ export class AppInfoService {
   constructor() {}
 
   public get title() {
-    return 'Defect detection App';
+    return 'Defect detection app';
   }
 
   public get currentYear() {

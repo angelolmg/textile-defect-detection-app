@@ -3,10 +3,10 @@ import { Component } from '@angular/core';
 import 'devextreme/data/odata/store';
 
 @Component({
-  templateUrl: 'tasks.component.html',
-  styleUrls: ['./tasks.component.scss'],
+  templateUrl: 'details.component.html',
+  styleUrls: ['./details.component.scss'],
 })
-export class TasksComponent {
+export class DetailsComponent {
   defectsData: any[] = [];
 
   constructor(private http: HttpClient) { }
