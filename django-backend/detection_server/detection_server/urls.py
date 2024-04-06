@@ -213,6 +213,16 @@ def break_video_into_frames():
         # Wait for 5 seconds before checking again
         time.sleep(5)
 
+# Function to get coordinates of neighbors
+def get_neighbors_coordinates(x, y, img_width, img_height, cell_size):
+    neighbors = []
+    for i in range(max(0, x - cell_size), min(img_width, x + cell_size + 1), cell_size):
+        for j in range(max(0, y - cell_size), min(img_height, y + cell_size + 1), cell_size):
+            if i != x or j != y:
+                neighbors.append((i, j, i + cell_size, j + cell_size))
+
+    return neighbors
+
 def process_frames_in_frames_folder():
     global model, defect_summary_data
     while True:
@@ -236,11 +246,11 @@ def process_frames_in_frames_folder():
 
                 # Break the image into cells
                 cell_size = 64
-                rows, cols, _ = input_image.shape
+                img_height, img_width, _ = input_image.shape
                 images = []
                 image_coordinates = []
-                for y in range(0, rows, cell_size):
-                    for x in range(0, cols, cell_size):
+                for y in range(0, img_height, cell_size):
+                    for x in range(0, img_width, cell_size):
                         image = input_image[y:y+cell_size, x:x+cell_size]
                         images.append(image)
                         image_coordinates.append((x, y, x+cell_size, y+cell_size))
@@ -248,22 +258,61 @@ def process_frames_in_frames_folder():
                 print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Number of patches: {len(images)}")
 
                 # Defect inference
-                results = model.predict(source=images, conf=0.25)
+                conf1 = 0.999
+                results = model.predict(source=images)
 
-                # Filter defects
+                # Filter defects and collect neighbors cells (8 cells around central cell)
+                # We perform a second detection on neighboring cells for the main class
+                neighbors_dict = {}  # Dictionary to store neighbors for each class
                 marked_images = []
                 top1 = []
+                confs = []
                 marked_coordinates = []
                 for i in range(len(images)):
-                    if results[i].probs.top1 != 0 and results[i].probs.top1conf > 0.99:
+                    if results[i].probs.top1 != 0 and results[i].probs.top1conf > conf1:
                         top1.append(int(results[i].probs.top1))
+                        confs.append(results[i].probs.top1conf)
                         marked_images.append(images[i])
                         marked_coordinates.append(image_coordinates[i])
 
+                        # Calculate neighbor cells
+                        # Create/update dictionary based on class
+                        neighbors = get_neighbors_coordinates(*image_coordinates[i][:2], img_height, img_width, cell_size)
+                        class_id = results[i].probs.top1
+
+                        if class_id not in neighbors_dict:
+                            neighbors_dict[class_id] = set()
+                        neighbors_dict[class_id].update(neighbors)
+
+                # Perform second prediction for neighbors
+                # Second prediction should have a smaller threshold
+                conf2 = 0.5
+
+                for class_id, neighbors in neighbors_dict.items():
+                    neighbor_images = []
+                    ncoords = []
+
+                    for neighbor_coords in neighbors:
+                        for i, coord in enumerate(image_coordinates):
+                            if neighbor_coords == coord:
+                                neighbor_images.append(images[i])
+                                ncoords.append(image_coordinates[i])
+
+                    if neighbor_images:
+                        neighbor_results = model.predict(source=neighbor_images)
+                        for i in range(len(neighbor_images)):
+                            if neighbor_results[i].probs.top1 == class_id and \
+                                neighbor_results[i].probs.top1conf > conf2:
+                                
+                                top1.append(class_id)
+                                confs.append(neighbor_results[i].probs.top1conf)
+                                marked_images.append(neighbor_images[i])
+                                marked_coordinates.append(ncoords[i])
+
                 print(GREEN + "[process_image]" + RESET +
-                    f' Number of patches with defect: {len(marked_images)}')
+                      f' Number of patches with defect: {len(marked_images)}')
                 print(GREEN + "[process_image]" + RESET +
-                    f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
+                      f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
                 defect_summary_data['Defect Count'] += len(marked_images)
 
                 # Save defect images to dictionary
@@ -278,6 +327,7 @@ def process_frames_in_frames_folder():
                                         'frame_index': index,
                                         'camera': 'Cam_0',
                                         'class': classes[top1[i]],
+                                        'confidence': float(confs[i]),
                                         'pos_x': marked_coordinates[i][0],
                                         'pos_y': marked_coordinates[i][1],
                                         'time': int(time.time()),
@@ -310,7 +360,7 @@ def process_frames_in_frames_folder():
                 processing = False
 
         # Wait for 5 seconds before checking again
-        time.sleep(5)
+        time.sleep(1)
 
 def create_defect_scatter_plot():
     global defect_summary_data

@@ -1,2 +1,4 @@
 /detection_env
 /detection_server/detection_server/__pycache__
+/detection_server/detection_server/working/*
+/detection_server/detection_server/active_session.json

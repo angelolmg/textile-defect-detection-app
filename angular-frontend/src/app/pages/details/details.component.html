@@ -2,26 +2,36 @@
 <table class="content-block"> 
   <thead>
     <tr>
+      <th>ID</th>
       <th>Frame Position</th>
       <th>Frame Index</th>
       <th>Camera</th>
       <th>Class</th>
+      <th (click)="sortBy('confidence')" style="cursor: pointer">
+        Confidence
+        <span class="arrow" [ngClass]="{ 'arrow-up': sortedBy === 'confidence' && !reverseSort, 'arrow-down': sortedBy === 'confidence' && reverseSort }"></span>
+      </th>
       <th>Position X</th>
       <th>Position Y</th>
-      <th>Time</th>
+      <th (click)="sortBy('time')" style="cursor: pointer">
+        Time
+        <span class="arrow" [ngClass]="{ 'arrow-up': sortedBy === 'time' && !reverseSort, 'arrow-down': sortedBy === 'time' && reverseSort }"></span>
+      </th>
       <th>Image</th>
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="let defect of defectsData">
-      <td>{{ defect.frame_pos }}</td>
-      <td>{{ defect.frame_index }}</td>
-      <td>{{ defect.camera }}</td>
-      <td>{{ defect.class }}</td>
-      <td>{{ defect.pos_x }}</td>
-      <td>{{ defect.pos_y }}</td>
-      <td>{{ defect.time * 1000 | date:'d/M/yy, h:mm:ss a' }}</td>
-      <td><img src="data:image/jpeg;charset=utf-8;base64, {{defect.img_base64}}" alt=""></td>
+    <tr *ngFor="let defect of defectsData; let i = index">
+        <td>{{ i + 1 }}</td>
+        <td>{{ defect.frame_pos }}</td>
+        <td>{{ defect.frame_index }}</td>
+        <td>{{ defect.camera }}</td>
+        <td>{{ defect.class }}</td>
+        <td>{{ defect.confidence | percent:'1.2-2' }}</td>
+        <td>{{ defect.pos_x }}</td>
+        <td>{{ defect.pos_y }}</td>
+        <td>{{ defect.time * 1000 | date:'d/M/yy, h:mm:ss a' }}</td>
+        <td><img src="data:image/jpeg;charset=utf-8;base64, {{defect.img_base64}}" alt=""></td>
     </tr>
-  </tbody>
+</tbody>
 </table>

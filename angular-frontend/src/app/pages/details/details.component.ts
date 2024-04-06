@@ -23,4 +23,22 @@ export class DetailsComponent {
       }
     );
   }
+
+  sortedBy: string = ''; // Property to track the currently sorted column
+  reverseSort: boolean = false; // Property to track the sorting order
+
+  sortBy(key: string) {
+    if (this.sortedBy === key) {
+      this.reverseSort = !this.reverseSort;
+    } else {
+      this.sortedBy = key;
+      this.reverseSort = false;
+    }
+
+    this.defectsData.sort((a, b) => {
+      if (a[key] < b[key]) return this.reverseSort ? 1 : -1;
+      if (a[key] > b[key]) return this.reverseSort ? -1 : 1;
+      return 0;
+    });
+  }
 }
