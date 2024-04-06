@@ -284,6 +284,9 @@ def process_frames_in_frames_folder():
                             neighbors_dict[class_id] = set()
                         neighbors_dict[class_id].update(neighbors)
 
+                        # Remove marked images since they are not neighboring cells
+                        neighbors_dict[class_id] = neighbors_dict[class_id] - set(marked_coordinates)
+
                 # Perform second prediction for neighbors
                 # Second prediction should have a smaller threshold
                 conf2 = 0.5
