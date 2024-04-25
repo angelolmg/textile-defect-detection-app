@@ -4,7 +4,7 @@
     <input id="file-input" type="file" (change)="onFileSelected($event)" class="file-input" />
     <button type="submit" class="submit-button" [class.active]="selectedFileName">Upload</button>
     <label for="file-input" class="file-label" [class.active]="selectedFileName">
-      <span>{{ loading ? 'Uploading...' : selectedFileName || 'Choose a file' }}</span>
+      <span>{{ loading ? 'Uploading...' : selectedFileName || 'Choose file' }}</span>
       <span class="upload-icon" *ngIf="!loading">&#8679;</span> <!-- Unicode for upload arrow -->
       <span class="spinner" *ngIf="loading"></span>
     </label>
