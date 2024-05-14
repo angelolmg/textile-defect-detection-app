@@ -9,6 +9,11 @@ export const navigation = [
     path: '/details',
     icon: 'folder'
   },
+  {
+    text: 'Datasets',
+    path: '/datasets',
+    icon: 'datausage'
+  },
   // {
   //   text: 'Examples',
   //   icon: 'folder',

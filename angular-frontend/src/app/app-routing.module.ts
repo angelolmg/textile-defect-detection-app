@@ -7,8 +7,14 @@ import { ProfileComponent } from './pages/profile/profile.component';
 import { DetailsComponent } from './pages/details/details.component';
 import { DxDataGridModule, DxFormModule } from 'devextreme-angular';
 import { CommonModule } from '@angular/common';
+import { DatasetsComponent } from './pages/datasets/datasets.component';
 
 const routes: Routes = [
+  {
+    path: 'datasets',
+    component: DatasetsComponent,
+    canActivate: [ AuthGuardService ]
+  },
   {
     path: 'details',
     component: DetailsComponent,

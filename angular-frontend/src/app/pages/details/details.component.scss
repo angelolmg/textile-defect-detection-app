@@ -6,11 +6,14 @@ table {
     width: fill-available;
     border-collapse: collapse;
     border-spacing: 0;
+
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+    border-radius: 6px;
 }
 
 thead {
-    background-color: #e6e6e6;
-    height: 4rem;
+  height: 4rem;
+  background-color: #e6e6e6;
 }
 
 th,
@@ -43,7 +46,7 @@ tr:nth-child(even) {
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
   }
-  
+
 .arrow-up {
 border-bottom: 4px solid;
 }

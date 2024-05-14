@@ -54,7 +54,7 @@ export class HomeComponent {
     this.imageChangeSubscription = interval(1000)
       .pipe(
         switchMap(() => {
-          return this.http.get<any>('http://localhost:8000/get-frame/').pipe(
+          return this.http.get<any>('http://localhost:8000/get-frame').pipe(
             catchError((error: HttpErrorResponse) => {
               if (error.status === 404) {
                 console.log('No images available');
@@ -74,10 +74,10 @@ export class HomeComponent {
             console.log(response);
 
             // Display the received image on the img tag
-            if(response.frame_data) 
+            if(response.frame_data)
               this.currentImageSource =
                 'data:image/jpeg;charset=utf-8;base64,' + response.frame_data;
-            
+
             this.rollmaps = response.rollmaps;
             this.summaryData = response.summary;
           }
@@ -115,7 +115,7 @@ export class HomeComponent {
     const formData = new FormData();
     formData.append('file', this.selectedFile);
 
-    this.http.post('http://localhost:8000/upload/', formData).subscribe(
+    this.http.post('http://localhost:8000/upload', formData).subscribe(
       (response) => {
         console.log('File uploaded successfully:', response);
       },
@@ -149,7 +149,7 @@ export class HomeComponent {
 
   clearSessions() {
     this.http
-      .get<any>('http://localhost:8000/reset-sessions/')
+      .get<any>('http://localhost:8000/reset-sessions')
       .subscribe((response) => {
         console.log(response.message);
       });
