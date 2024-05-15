@@ -1,86 +1,57 @@
 import os
-import csv
 import json
 import threading
 import cv2
 import shutil
-import ultralytics
 from ultralytics import YOLO
-from PIL import Image
 import base64
-import datetime
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import json
-import io
 import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from process import process_bp, db
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 CORS(app)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'mydatabase.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# @app.route('/upload', methods=['POST'])
-# def upload_file():
-#     if request.method == 'POST' and request.FILES.get('file'):
-#         uploaded_file = request.FILES['file']
-#         # Check if the file is a video file (modify the condition as needed)
-#         if uploaded_file.name.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+db.init_app(app)
+app.register_blueprint(process_bp)
 
-#             # Construct folder path based on current timestamp
-#             timestamp = time.strftime("%Y%m%d%H%M%S")
-#             folder_path = os.path.join(BASE_DIR, 'working', timestamp)
-#             # Create the folder if it doesn't exist
-#             os.makedirs(folder_path, exist_ok=True)
-#             # Construct absolute file path
-#             file_path = os.path.join(folder_path, uploaded_file.name)
-
-#             # Save the file to disk
-#             with open(file_path, 'wb+') as destination:
-#                 for chunk in uploaded_file.chunks():
-#                     destination.write(chunk)
-
-#             # Create active_session.json file
-#             active_session_file_path = os.path.join(BASE_DIR, 'active_session.json')
-#             with open(active_session_file_path, 'w') as active_session_file:
-#                 json.dump({'active_session': timestamp}, active_session_file)
-
-#             return jsonify({'message': 'File uploaded successfully'}), 200
-#         else:
-#             return jsonify({'error': 'Only video files are allowed'}), 400
-#     return jsonify({'error': 'No file uploaded'}), 400
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' in request.files:
-        uploaded_file = request.files['file']
-        # Check if the file is a video file (modify the condition as needed)
-        if uploaded_file.filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-
-            # Construct folder path based on current timestamp
-            timestamp = time.strftime("%Y%m%d%H%M%S")
-            folder_path = os.path.join(BASE_DIR, 'working', timestamp)
-            # Create the folder if it doesn't exist
-            os.makedirs(folder_path, exist_ok=True)
-            # Construct absolute file path
-            file_path = os.path.join(folder_path, uploaded_file.filename)
-
-            # Save the file to disk
-            uploaded_file.save(file_path)
-
-            # Create active_session.json file
-            active_session_file_path = os.path.join(BASE_DIR, 'active_session.json')
-            with open(active_session_file_path, 'w') as active_session_file:
-                json.dump({'active_session': timestamp}, active_session_file)
-
-            return jsonify({'message': 'File uploaded successfully'}), 200
-        else:
-            return jsonify({'error': 'Only video files are allowed'}), 400
-    else:
+    if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
+
+    uploaded_file = request.files['file']
+    # Check if the file is a video file (modify the condition as needed)
+    if uploaded_file.filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+
+        # Construct folder path based on current timestamp
+        timestamp = time.strftime("%Y%m%d%H%M%S")
+        folder_path = os.path.join(BASE_DIR, 'working', timestamp)
+        # Create the folder if it doesn't exist
+        os.makedirs(folder_path, exist_ok=True)
+        # Construct absolute file path
+        file_path = os.path.join(folder_path, uploaded_file.filename)
+
+        # Save the file to disk
+        uploaded_file.save(file_path)
+
+        # Create active_session.json file
+        active_session_file_path = os.path.join(BASE_DIR, 'active_session.json')
+        with open(active_session_file_path, 'w') as active_session_file:
+            json.dump({'active_session': timestamp}, active_session_file)
+
+        return jsonify({'message': 'File uploaded successfully'}), 200
+    else:
+        return jsonify({'error': 'Only video files are allowed'}), 400
 
 def calculate_summary_data(json_file_path):
     summary_data = {
