@@ -9,10 +9,12 @@ import { UnauthenticatedContentModule } from './unauthenticated-content';
 import { AppRoutingModule } from './app-routing.module';
 import {HttpClientModule} from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { DatasetsComponent } from './pages/datasets/datasets.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    DatasetsComponent
   ],
   imports: [
     CommonModule,
@@ -28,7 +30,7 @@ import { CommonModule } from '@angular/common';
     UnauthenticatedContentModule,
     AppRoutingModule,
     HttpClientModule,
-  
+
 
   ],
   providers: [

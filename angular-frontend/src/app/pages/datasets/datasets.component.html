@@ -1,3 +1,15 @@
-<p>
-  datasets works!
-</p>
+<div class="upload-container">
+  <h2>Upload Images</h2>
+  <input type="file" #fileInput (change)="onFileSelected($event)" multiple hidden />
+  <button (click)="fileInput.click()">Select Images</button>
+  <div class="drag-drop-area" (dragover)="onDragOver($event)" (drop)="onDrop($event)" (click)="fileInput.click()">
+    <p>Drag and drop images here</p>
+  </div>
+  <div class="selected-files">
+    <h3>Selected Files:</h3>
+    <ul>
+      <li *ngFor="let file of selectedFiles">{{ file.name }}</li>
+    </ul>
+  </div>
+  <button (click)="uploadFiles()">Upload</button>
+</div>

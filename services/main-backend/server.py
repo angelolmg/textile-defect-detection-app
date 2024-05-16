@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import time
+import uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from process import process_bp, db
@@ -23,6 +24,31 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 app.register_blueprint(process_bp)
 
+@app.route('/upload_images', methods=['POST'])
+def upload_images():
+    # Check if the POST request has files
+    if 'files' not in request.files:
+        return jsonify({'error': 'No files found in the request'}), 400
+
+    files = request.files.getlist('files')
+    if not files:
+        return jsonify({'error': 'No files found in the request'}), 400
+
+    # Generate a random ID for the folder
+    folder_id = str(uuid.uuid4())
+    folder_path = os.path.join('datasets', folder_id)
+    
+    # Create the folder if it doesn't exist
+    os.makedirs(folder_path, exist_ok=True)
+
+    # Save each file to the disk
+    saved_files = []
+    for file in files:
+        file_path = os.path.join(folder_path, file.filename)
+        file.save(file_path)
+        saved_files.append(file.filename)
+
+    return jsonify({'message': 'Files uploaded successfully', 'folder_id': folder_id, 'files': saved_files})
 
 @app.route('/upload', methods=['POST'])
 def upload_file():

@@ -11,8 +11,17 @@ export const navigation = [
   },
   {
     text: 'Datasets',
-    path: '/datasets',
-    icon: 'datausage'
+    icon: 'datausage',
+    items: [
+      {
+        text: 'Upload images',
+        path: '/datasets'
+      },
+      // {
+      //   text: 'Details',
+      //   path: '/details'
+      // }
+    ]
   },
   // {
   //   text: 'Examples',
@@ -20,7 +29,7 @@ export const navigation = [
   //   items: [
   //     {
   //       text: 'Profile',
-  //       path: '/profile'
+  //       path: '/datasets'
   //     },
   //     {
   //       text: 'Details',
