@@ -100,3 +100,36 @@ button:active {
   background-color: #004085;
   transform: translateY(0);
 }
+
+.additional-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.additional-info label {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.additional-info .full-width {
+  grid-column: span 2;
+}
+
+.additional-info input[type="text"],
+.additional-info input[type="number"] {
+  width: calc(100% - 10px);
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.additional-info input[type="text"]:focus,
+.additional-info input[type="number"]:focus {
+  border-color: #66afe9;
+  outline: none;
+}

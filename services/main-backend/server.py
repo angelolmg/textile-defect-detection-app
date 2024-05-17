@@ -34,6 +34,29 @@ def upload_images():
     if not files:
         return jsonify({'error': 'No files found in the request'}), 400
 
+    # Check for additional info in the form data
+    dataset_name = request.form.get('datasetName')
+    resize_x = request.form.get('resizeX')
+    resize_y = request.form.get('resizeY')
+    patch_size = request.form.get('patchSize')
+    class_names = request.form.get('classNames')
+
+    # Validate the additional info
+    if not all([dataset_name, resize_x, resize_y, patch_size, class_names]):
+        return jsonify({'error': 'Missing additional information in the request'}), 400
+
+    try:
+        resize_x = int(resize_x)
+        resize_y = int(resize_y)
+        patch_size = int(patch_size)
+        class_names = class_names.split(',')
+    except ValueError:
+        return jsonify({'error': 'Invalid numerical values in the additional information'}), 400
+
+    # Validate resize dimensions and patch size
+    if resize_x < 320 or resize_y < 320 or patch_size < 32 or resize_x % patch_size != 0 or resize_y % patch_size != 0:
+        return jsonify({'error': 'Invalid resize or patch size dimensions'}), 400
+
     # Generate a random ID for the folder
     folder_id = str(uuid.uuid4())
     folder_path = os.path.join('datasets', folder_id)
@@ -48,7 +71,17 @@ def upload_images():
         file.save(file_path)
         saved_files.append(file.filename)
 
-    return jsonify({'message': 'Files uploaded successfully', 'folder_id': folder_id, 'files': saved_files})
+    # Return the response including additional info
+    return jsonify({
+        'message': 'Files uploaded successfully',
+        'folder_id': folder_id,
+        'files': saved_files,
+        'dataset_name': dataset_name,
+        'resize_x': resize_x,
+        'resize_y': resize_y,
+        'patch_size': patch_size,
+        'class_names': class_names
+    }), 201
 
 @app.route('/upload', methods=['POST'])
 def upload_file():

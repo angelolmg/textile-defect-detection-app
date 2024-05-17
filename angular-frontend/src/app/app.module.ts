@@ -10,6 +10,7 @@ import { AppRoutingModule } from './app-routing.module';
 import {HttpClientModule} from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { DatasetsComponent } from './pages/datasets/datasets.component';
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
@@ -30,6 +31,7 @@ import { DatasetsComponent } from './pages/datasets/datasets.component';
     UnauthenticatedContentModule,
     AppRoutingModule,
     HttpClientModule,
+    FormsModule
 
 
   ],

@@ -7,32 +7,69 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
   styleUrls: ['./datasets.component.scss']
 })
 export class DatasetsComponent {
-  @ViewChild('fileInput') fileInput: ElementRef<HTMLInputElement> | undefined;
-
   selectedFiles: File[] = [];
+  datasetName: string = '';
+  resizeX: number = 320;
+  resizeY: number = 320;
+  patchSize: number = 32;
+  classNames: string = '';
+  minImagesUpload: number = 3;
 
   constructor(private http: HttpClient) {}
 
   onFileSelected(event: any): void {
-    this.selectedFiles.push(...event.target.files);
+    this.selectedFiles = Array.from(event.target.files);
   }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
-    event.stopPropagation();
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
-    event.stopPropagation();
-    if (event.dataTransfer && event.dataTransfer.files) {
-      this.selectedFiles.push(...Array.from(event.dataTransfer.files));
+    if (event.dataTransfer) {
+      this.selectedFiles = Array.from(event.dataTransfer.files);
     }
   }
 
+  validateInputs(): boolean {
+    const classList = this.classNames.split(',');
+    if (classList.length === 0 || classList.some(cls => !cls.trim())) {
+      alert('Class names must be a comma-separated list of non-empty strings.');
+      return false;
+    }
+    if (this.resizeX < 320 || this.resizeY < 320) {
+      alert('Minimum resize size is 320x320.');
+      return false;
+    }
+    if (this.patchSize < 32) {
+      alert('Minimum patch size is 32.');
+      return false;
+    }
+    if (this.resizeX % this.patchSize !== 0 || this.resizeY % this.patchSize !== 0) {
+      alert('Resize dimensions must be evenly divisible by patch size.');
+      return false;
+    }
+    return true;
+  }
+
   uploadFiles(): void {
+    if (this.selectedFiles.length < this.minImagesUpload) {
+      alert('You must select at least '+ this.minImagesUpload +' images to upload.');
+      return;
+    }
+    if (!this.validateInputs()) {
+      return;
+    }
+
     const formData = new FormData();
     this.selectedFiles.forEach(file => formData.append('files', file, file.name));
+
+    formData.append('datasetName', this.datasetName);
+    formData.append('resizeX', this.resizeX.toString());
+    formData.append('resizeY', this.resizeY.toString());
+    formData.append('patchSize', this.patchSize.toString());
+    formData.append('classNames', this.classNames.toString());
 
     const headers = new HttpHeaders();
     headers.append('Content-Type', 'multipart/form-data');

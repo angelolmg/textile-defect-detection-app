@@ -11,5 +11,23 @@
       <li *ngFor="let file of selectedFiles">{{ file.name }}</li>
     </ul>
   </div>
+
+  <div class="additional-info">
+    <label for="datasetName">Dataset Name:</label>
+    <input type="text" id="datasetName" [(ngModel)]="datasetName" required>
+
+    <label for="resizeX">Resize Width (px):</label>
+    <input type="number" id="resizeX" [(ngModel)]="resizeX" min="320" required>
+
+    <label for="resizeY">Resize Height (px):</label>
+    <input type="number" id="resizeY" [(ngModel)]="resizeY" min="320" required>
+
+    <label for="patchSize">Patch Size (px):</label>
+    <input type="number" id="patchSize" [(ngModel)]="patchSize" min="32" required>
+
+    <label for="classNames">Class Names (comma separated):</label>
+    <input type="text" id="classNames" [(ngModel)]="classNames" required>
+  </div>
+
   <button (click)="uploadFiles()">Upload</button>
 </div>
