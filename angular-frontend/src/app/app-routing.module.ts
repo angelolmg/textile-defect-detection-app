@@ -8,8 +8,14 @@ import { DetailsComponent } from './pages/details/details.component';
 import { DxDataGridModule, DxFormModule } from 'devextreme-angular';
 import { CommonModule } from '@angular/common';
 import { DatasetsComponent } from './pages/datasets/datasets.component';
+import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
 
 const routes: Routes = [
+  {
+    path: 'list-datasets',
+    component: ListDatasetsComponent,
+    canActivate: [ AuthGuardService ]
+  },
   {
     path: 'datasets',
     component: DatasetsComponent,

@@ -11,11 +11,14 @@ import {HttpClientModule} from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { DatasetsComponent } from './pages/datasets/datasets.component';
 import { FormsModule } from '@angular/forms';
+import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
+import { RouterModule } from '@angular/router';
 
 @NgModule({
   declarations: [
     AppComponent,
-    DatasetsComponent
+    DatasetsComponent,
+    ListDatasetsComponent
   ],
   imports: [
     CommonModule,
@@ -31,7 +34,8 @@ import { FormsModule } from '@angular/forms';
     UnauthenticatedContentModule,
     AppRoutingModule,
     HttpClientModule,
-    FormsModule
+    FormsModule,
+    RouterModule
 
 
   ],

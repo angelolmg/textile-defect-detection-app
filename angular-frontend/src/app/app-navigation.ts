@@ -14,13 +14,13 @@ export const navigation = [
     icon: 'datausage',
     items: [
       {
+        text: 'Show datasets',
+        path: '/list-datasets'
+      },
+      {
         text: 'Upload images',
         path: '/datasets'
       },
-      // {
-      //   text: 'Details',
-      //   path: '/details'
-      // }
     ]
   },
   // {

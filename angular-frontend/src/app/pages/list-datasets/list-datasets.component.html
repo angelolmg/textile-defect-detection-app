@@ -1,0 +1,33 @@
+<div class="process-list-container">
+  <h2>Datasets</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Total Images</th>
+        <th>Images Left</th>
+        <th>Resize Width (px)</th>
+        <th>Resize Height (px)</th>
+        <th>Patch Size (px)</th>
+        <th>Class Names</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let process of processes">
+        <td>{{ process.id }}</td>
+        <td>{{ process.name }}</td>
+        <td>{{ process.total_images }}</td>
+        <td>{{ process.images_left }}</td>
+        <td>{{ process.resize_x }}</td>
+        <td>{{ process.resize_y }}</td>
+        <td>{{ process.patch_size }}</td>
+        <td>{{ process.class_names }}</td>
+        <td>
+          <button *ngIf="process.images_left > 0" (click)="navigateToHome()">Patch</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

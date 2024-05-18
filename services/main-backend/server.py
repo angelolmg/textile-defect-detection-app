@@ -9,10 +9,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import time
-import uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from process import process_bp, db
+from process import process_bp, db, add
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -49,7 +48,7 @@ def upload_images():
         resize_x = int(resize_x)
         resize_y = int(resize_y)
         patch_size = int(patch_size)
-        class_names = class_names.split(',')
+        class_names_array = class_names.split(',')
     except ValueError:
         return jsonify({'error': 'Invalid numerical values in the additional information'}), 400
 
@@ -57,9 +56,7 @@ def upload_images():
     if resize_x < 320 or resize_y < 320 or patch_size < 32 or resize_x % patch_size != 0 or resize_y % patch_size != 0:
         return jsonify({'error': 'Invalid resize or patch size dimensions'}), 400
 
-    # Generate a random ID for the folder
-    folder_id = str(uuid.uuid4())
-    folder_path = os.path.join('datasets', folder_id)
+    folder_path = os.path.join('datasets', dataset_name)
     
     # Create the folder if it doesn't exist
     os.makedirs(folder_path, exist_ok=True)
@@ -70,17 +67,18 @@ def upload_images():
         file_path = os.path.join(folder_path, file.filename)
         file.save(file_path)
         saved_files.append(file.filename)
+    
+    add(dataset_name, len(files), resize_x, resize_y, patch_size, class_names)
 
     # Return the response including additional info
     return jsonify({
         'message': 'Files uploaded successfully',
-        'folder_id': folder_id,
         'files': saved_files,
         'dataset_name': dataset_name,
         'resize_x': resize_x,
         'resize_y': resize_y,
         'patch_size': patch_size,
-        'class_names': class_names
+        'class_names': class_names_array
     }), 201
 
 @app.route('/upload', methods=['POST'])
