@@ -96,9 +96,7 @@ export class PatchingComponent implements OnInit {
     const imageData = this.getCurrentImage();
     if (!imageData || !this.process) return;
 
-    const canvas: HTMLCanvasElement = <HTMLCanvasElement>(
-      document.getElementById('imageCanvas')
-    );
+    const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById('imageCanvas');
     const ctx: CanvasRenderingContext2D | null = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -115,18 +113,24 @@ export class PatchingComponent implements OnInit {
       ctx.drawImage(image, 0, 0, this.resizeX, this.resizeY);
 
       // Draw the grid
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
       for (let x = 0; x < this.resizeX; x += this.patchSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, this.resizeY);
-        ctx.stroke();
-      }
-      for (let y = 0; y < this.resizeY; y += this.patchSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(this.resizeX, y);
-        ctx.stroke();
+        for (let y = 0; y < this.resizeY; y += this.patchSize) {
+          // Check if this cell is selected in any class
+          let isSelected = false;
+          Object.keys(this.coordinatesData[imageData.filename] || {}).forEach(cls => {
+            if (this.coordinatesData[imageData.filename][cls].some(coord => coord[0] === x / this.patchSize && coord[1] === y / this.patchSize)) {
+              isSelected = true;
+            }
+          });
+
+          // Set the stroke style based on whether the cell is selected
+          ctx.strokeStyle = isSelected ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 0, 0.5)';
+
+          // Draw the grid line
+          ctx.beginPath();
+          ctx.rect(x, y, this.patchSize, this.patchSize);
+          ctx.stroke();
+        }
       }
     };
     image.src = 'data:image/png;base64,' + imageData.data;
@@ -147,9 +151,7 @@ export class PatchingComponent implements OnInit {
     if (this.isCanvasClickHandlerSet) {
       return; // If the click handler is already set up, exit the method
     }
-    const canvas: HTMLCanvasElement = <HTMLCanvasElement>(
-      document.getElementById('imageCanvas')
-    );
+    const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById('imageCanvas');
     if (!canvas) {
       console.error('Canvas element not found');
       return;
@@ -165,18 +167,15 @@ export class PatchingComponent implements OnInit {
       const imageName = this.getCurrentImage().filename;
       if (!this.coordinatesData[imageName]) {
         this.coordinatesData[imageName] = {};
-        this.remainingClasses.forEach(
-          (cls) => (this.coordinatesData[imageName][cls] = [])
-        );
+        this.remainingClasses.forEach(cls => this.coordinatesData[imageName][cls] = []);
       }
 
       let cellRemoved = false;
+      let cellFoundInOtherClass = false;
 
       // Check all classes except the selected class
-      this.remainingClasses.forEach((cls) => {
-        const index = this.coordinatesData[imageName][cls].findIndex(
-          (coord) => coord[0] === cellX && coord[1] === cellY
-        );
+      this.remainingClasses.forEach(cls => {
+        const index = this.coordinatesData[imageName][cls].findIndex(coord => coord[0] === cellX && coord[1] === cellY);
         if (index !== -1) {
           if (cls === this.selectedClass) {
             // If cell is in the selected class, remove it (toggle functionality)
@@ -185,23 +184,20 @@ export class PatchingComponent implements OnInit {
           } else {
             // If cell is in a different class, remove it from that class
             this.coordinatesData[imageName][cls].splice(index, 1);
+            cellFoundInOtherClass = true;
           }
         }
       });
 
       // If the cell was found in another class or wasn't removed (meaning it wasn't in the selected class), add it to the selected class
-      if (
-        !cellRemoved &&
-        this.selectedClass &&
-        this.selectedClass !== this.defaultClass
-      ) {
-        this.coordinatesData[imageName][this.selectedClass].push([
-          cellX,
-          cellY,
-        ]);
+      if (!cellRemoved && this.selectedClass && this.selectedClass !== this.defaultClass) {
+        this.coordinatesData[imageName][this.selectedClass].push([cellX, cellY]);
       }
 
       console.log(this.coordinatesData);
+
+      // Redraw the grid with the updated selection
+      this.drawImageWithGrid();
     });
     this.isCanvasClickHandlerSet = true; // Set the flag to true after setting up the click handler
   }
