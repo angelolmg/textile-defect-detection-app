@@ -5,11 +5,11 @@ import { DatasetsService } from '../list-datasets/datasets.service';
 @Component({
   selector: 'app-patching',
   templateUrl: './patching.component.html',
-  styleUrls: ['./patching.component.scss']
+  styleUrls: ['./patching.component.scss'],
 })
 export class PatchingComponent implements OnInit {
-  datasetName: string  = '';
-  images: { filename: string, data: string }[] = [];
+  datasetName: string = '';
+  images: { filename: string; data: string }[] = [];
   currentIndex: number = 0;
   process: any = null;
   defaultClass: string = '';
@@ -21,13 +21,14 @@ export class PatchingComponent implements OnInit {
   isCanvasClickHandlerSet = false; // Flag to track if the canvas click handler is already set
 
   // Data structure to hold coordinates
-  coordinatesData: { [key: string]: { [key: string]: [number, number][] } } = {};
+  coordinatesData: { [key: string]: { [key: string]: [number, number][] } } =
+    {};
 
   constructor(
     private route: ActivatedRoute,
     private datasetsService: DatasetsService,
     private router: Router
-  ) { }
+  ) {}
 
   ngOnInit(): void {
     this.datasetName = this.route.snapshot.paramMap.get('datasetName') || '';
@@ -59,9 +60,11 @@ export class PatchingComponent implements OnInit {
         this.patchSize = this.process.patch_size;
 
         // Initialize the coordinatesData structure
-        this.images.forEach(image => {
+        this.images.forEach((image) => {
           this.coordinatesData[image.filename] = {};
-          this.remainingClasses.forEach(cls => this.coordinatesData[image.filename][cls] = []);
+          this.remainingClasses.forEach(
+            (cls) => (this.coordinatesData[image.filename][cls] = [])
+          );
         });
 
         this.drawImageWithGrid();
@@ -93,7 +96,9 @@ export class PatchingComponent implements OnInit {
     const imageData = this.getCurrentImage();
     if (!imageData || !this.process) return;
 
-    const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById('imageCanvas');
+    const canvas: HTMLCanvasElement = <HTMLCanvasElement>(
+      document.getElementById('imageCanvas')
+    );
     const ctx: CanvasRenderingContext2D | null = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -132,7 +137,9 @@ export class PatchingComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log(`Marked ${this.getCurrentImage().filename} as ${this.selectedClass}`);
+    console.log(
+      `Marked ${this.getCurrentImage().filename} as ${this.selectedClass}`
+    );
     // Add your submit logic here
   }
 
@@ -140,7 +147,9 @@ export class PatchingComponent implements OnInit {
     if (this.isCanvasClickHandlerSet) {
       return; // If the click handler is already set up, exit the method
     }
-    const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById('imageCanvas');
+    const canvas: HTMLCanvasElement = <HTMLCanvasElement>(
+      document.getElementById('imageCanvas')
+    );
     if (!canvas) {
       console.error('Canvas element not found');
       return;
@@ -153,14 +162,43 @@ export class PatchingComponent implements OnInit {
       const cellY = Math.floor(y / this.patchSize);
       console.log(`Clicked cell: (${cellX},${cellY})`);
 
-      // Add the clicked cell to the coordinatesData structure
       const imageName = this.getCurrentImage().filename;
       if (!this.coordinatesData[imageName]) {
         this.coordinatesData[imageName] = {};
-        this.remainingClasses.forEach(cls => this.coordinatesData[imageName][cls] = []);
+        this.remainingClasses.forEach(
+          (cls) => (this.coordinatesData[imageName][cls] = [])
+        );
       }
-      if (this.selectedClass && this.selectedClass !== this.defaultClass) {
-        this.coordinatesData[imageName][this.selectedClass].push([cellX, cellY]);
+
+      let cellRemoved = false;
+
+      // Check all classes except the selected class
+      this.remainingClasses.forEach((cls) => {
+        const index = this.coordinatesData[imageName][cls].findIndex(
+          (coord) => coord[0] === cellX && coord[1] === cellY
+        );
+        if (index !== -1) {
+          if (cls === this.selectedClass) {
+            // If cell is in the selected class, remove it (toggle functionality)
+            this.coordinatesData[imageName][cls].splice(index, 1);
+            cellRemoved = true;
+          } else {
+            // If cell is in a different class, remove it from that class
+            this.coordinatesData[imageName][cls].splice(index, 1);
+          }
+        }
+      });
+
+      // If the cell was found in another class or wasn't removed (meaning it wasn't in the selected class), add it to the selected class
+      if (
+        !cellRemoved &&
+        this.selectedClass &&
+        this.selectedClass !== this.defaultClass
+      ) {
+        this.coordinatesData[imageName][this.selectedClass].push([
+          cellX,
+          cellY,
+        ]);
       }
 
       console.log(this.coordinatesData);
