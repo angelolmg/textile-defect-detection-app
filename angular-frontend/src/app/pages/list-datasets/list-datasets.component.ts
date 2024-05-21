@@ -35,7 +35,7 @@ export class ListDatasetsComponent implements OnInit {
     );
   }
 
-  navigateToHome(): void {
-    this.router.navigate(['/home']);
+  navigateToHome(datasetName: string): void {
+    this.router.navigate(['/patching/' + datasetName]);
   }
 }

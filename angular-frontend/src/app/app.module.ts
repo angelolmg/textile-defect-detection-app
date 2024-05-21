@@ -13,12 +13,14 @@ import { DatasetsComponent } from './pages/datasets/datasets.component';
 import { FormsModule } from '@angular/forms';
 import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
 import { RouterModule } from '@angular/router';
+import { PatchingComponent } from './pages/patching/patching.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     DatasetsComponent,
-    ListDatasetsComponent
+    ListDatasetsComponent,
+    PatchingComponent
   ],
   imports: [
     CommonModule,

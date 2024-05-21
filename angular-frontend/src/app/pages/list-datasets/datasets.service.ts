@@ -24,4 +24,12 @@ export class DatasetsService {
   getProcesses(): Observable<Process[]> {
     return this.http.get<Process[]>(`${this.apiUrl}/processes`);
   }
+
+  getProcessByName(processName: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/process/${processName}`);
+  }
+
+  getImages(datasetName: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/get_images/${datasetName}`);
+  }
 }

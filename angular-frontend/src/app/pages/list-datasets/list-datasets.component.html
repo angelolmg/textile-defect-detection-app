@@ -25,7 +25,7 @@
         <td>{{ process.patch_size }}</td>
         <td>{{ process.class_names }}</td>
         <td>
-          <button *ngIf="process.images_left > 0" (click)="navigateToHome()">Patch</button>
+          <button *ngIf="process.images_left > 0" (click)="navigateToHome(process.name)">Patch</button>
         </td>
       </tr>
     </tbody>

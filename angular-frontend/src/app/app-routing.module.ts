@@ -9,8 +9,14 @@ import { DxDataGridModule, DxFormModule } from 'devextreme-angular';
 import { CommonModule } from '@angular/common';
 import { DatasetsComponent } from './pages/datasets/datasets.component';
 import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
+import { PatchingComponent } from './pages/patching/patching.component';
 
 const routes: Routes = [
+  {
+    path: 'patching/:datasetName',
+    component: PatchingComponent,
+    canActivate: [ AuthGuardService ]
+  },
   {
     path: 'list-datasets',
     component: ListDatasetsComponent,

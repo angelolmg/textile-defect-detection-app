@@ -1,5 +1,6 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+import os, base64
 
 db = SQLAlchemy()
 
@@ -66,6 +67,23 @@ def get_processes():
         'class_names': process.class_names
     } for process in processes])
 
+@process_bp.route('/process/<string:process_name>', methods=['GET'])
+def get_process_by_name(process_name):
+    process = Process.query.filter_by(name=process_name).first()
+    if not process:
+        return jsonify({'error': 'Process not found'}), 404
+    
+    return jsonify({
+        'id': process.id,
+        'name': process.name,
+        'total_images': process.total_images,
+        'images_left': process.images_left,
+        'resize_x': process.resize_x,
+        'resize_y': process.resize_y,
+        'patch_size': process.patch_size,
+        'class_names': process.class_names
+    })
+
 @process_bp.route('/delete_process/<int:process_id>', methods=['DELETE'])
 def delete_process(process_id):
     process = Process.query.get_or_404(process_id)
@@ -86,3 +104,23 @@ def edit_process(process_id):
     process.class_names = data.get('class_names', process.class_names)
     db.session.commit()
     return jsonify({'message': 'Process updated successfully'}), 200
+
+@process_bp.route('/get_images/<dataset_name>', methods=['GET'])
+def get_images(dataset_name):
+    folder_path = os.path.join('datasets', dataset_name)
+    
+    if not os.path.exists(folder_path):
+        return jsonify({'error': 'Dataset not found'}), 404
+
+    if not os.path.isdir(folder_path):
+        return jsonify({'error': 'Invalid dataset folder'}), 400
+
+    image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp')
+    images = []
+    for filename in os.listdir(folder_path):
+        if filename.lower().endswith(image_extensions):
+            with open(os.path.join(folder_path, filename), "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                images.append({'filename': filename, 'data': encoded_string})
+    
+    return jsonify({'images': images, 'dataset_name': dataset_name})

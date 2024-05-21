@@ -1,0 +1,27 @@
+<div class="patching-container" *ngIf="images.length > 0">
+  <h2>Images in {{ datasetName }}</h2>
+  <div class="image-counter">
+    ({{ currentIndex + 1 }}/{{ images.length }})
+  </div>
+  <div class="image-display">
+    <button (click)="prevImage()" [disabled]="currentIndex === 0">&#8592;</button>
+    <div class="image-wrapper">
+      <canvas id="imageCanvas"></canvas>
+      <p>{{ getCurrentImage().filename }}</p>
+    </div>
+    <button (click)="nextImage()" [disabled]="currentIndex === images.length - 1">&#8594;</button>
+  </div>
+  <div class="process-info" *ngIf="process">
+    <div class="class-selection">
+      <label for="classSelect">Choose a class to mark (default class is {{ defaultClass }}):</label>
+      <select id="classSelect" (change)="onClassChange($event)">
+        <option *ngFor="let className of remainingClasses" [value]="className">{{ className }}</option>
+      </select>
+    </div>
+    <button (click)="onSubmit()">Submit</button>
+  </div>
+</div>
+
+<div *ngIf="images.length === 0">
+  <p>No images available.</p>
+</div>
