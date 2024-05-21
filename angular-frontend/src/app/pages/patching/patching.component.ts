@@ -5,11 +5,11 @@ import { DatasetsService } from '../list-datasets/datasets.service';
 @Component({
   selector: 'app-patching',
   templateUrl: './patching.component.html',
-  styleUrls: ['./patching.component.scss'],
+  styleUrls: ['./patching.component.scss']
 })
 export class PatchingComponent implements OnInit {
-  datasetName: string = '';
-  images: { filename: string; data: string }[] = [];
+  datasetName: string  = '';
+  images: { filename: string, data: string }[] = [];
   currentIndex: number = 0;
   process: any = null;
   defaultClass: string = '';
@@ -21,14 +21,13 @@ export class PatchingComponent implements OnInit {
   isCanvasClickHandlerSet = false; // Flag to track if the canvas click handler is already set
 
   // Data structure to hold coordinates
-  coordinatesData: { [key: string]: { [key: string]: [number, number][] } } =
-    {};
+  coordinatesData: { [key: string]: { [key: string]: [number, number][] } } = {};
 
   constructor(
     private route: ActivatedRoute,
     private datasetsService: DatasetsService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.datasetName = this.route.snapshot.paramMap.get('datasetName') || '';
@@ -60,11 +59,9 @@ export class PatchingComponent implements OnInit {
         this.patchSize = this.process.patch_size;
 
         // Initialize the coordinatesData structure
-        this.images.forEach((image) => {
+        this.images.forEach(image => {
           this.coordinatesData[image.filename] = {};
-          this.remainingClasses.forEach(
-            (cls) => (this.coordinatesData[image.filename][cls] = [])
-          );
+          this.remainingClasses.forEach(cls => this.coordinatesData[image.filename][cls] = []);
         });
 
         this.drawImageWithGrid();
@@ -92,6 +89,12 @@ export class PatchingComponent implements OnInit {
     return this.images[this.currentIndex];
   }
 
+  getColorForClass(cls: string): string {
+    const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+    const index = this.remainingClasses.indexOf(cls);
+    return colors[index % colors.length];
+  }
+
   drawImageWithGrid(): void {
     const imageData = this.getCurrentImage();
     if (!imageData || !this.process) return;
@@ -117,14 +120,22 @@ export class PatchingComponent implements OnInit {
         for (let y = 0; y < this.resizeY; y += this.patchSize) {
           // Check if this cell is selected in any class
           let isSelected = false;
+          let selectedClass = '';
           Object.keys(this.coordinatesData[imageData.filename] || {}).forEach(cls => {
             if (this.coordinatesData[imageData.filename][cls].some(coord => coord[0] === x / this.patchSize && coord[1] === y / this.patchSize)) {
               isSelected = true;
+              selectedClass = cls;
             }
           });
 
           // Set the stroke style based on whether the cell is selected
-          ctx.strokeStyle = isSelected ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 0, 0.5)';
+          if (isSelected) {
+            ctx.strokeStyle = this.getColorForClass(selectedClass);
+            ctx.lineWidth = 8; // Thicker line for selected cells
+          } else {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 1; // Normal line for non-selected cells
+          }
 
           // Draw the grid line
           ctx.beginPath();
@@ -141,9 +152,7 @@ export class PatchingComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log(
-      `Marked ${this.getCurrentImage().filename} as ${this.selectedClass}`
-    );
+    console.log(`Marked ${this.getCurrentImage().filename} as ${this.selectedClass}`);
     // Add your submit logic here
   }
 
