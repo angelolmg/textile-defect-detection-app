@@ -20,6 +20,8 @@ export class PatchingComponent implements OnInit {
   patchSize: number = 0;
   isCanvasClickHandlerSet = false; // Flag to track if the canvas click handler is already set
 
+  // Data structure to hold coordinates
+  coordinatesData: { [key: string]: { [key: string]: [number, number][] } } = {};
 
   constructor(
     private route: ActivatedRoute,
@@ -32,7 +34,6 @@ export class PatchingComponent implements OnInit {
     this.fetchImages();
     this.fetchProcess();
   }
-
 
   fetchImages(): void {
     this.datasetsService.getImages(this.datasetName).subscribe(
@@ -56,9 +57,15 @@ export class PatchingComponent implements OnInit {
         this.resizeX = this.process.resize_x;
         this.resizeY = this.process.resize_y;
         this.patchSize = this.process.patch_size;
+
+        // Initialize the coordinatesData structure
+        this.images.forEach(image => {
+          this.coordinatesData[image.filename] = {};
+          this.remainingClasses.forEach(cls => this.coordinatesData[image.filename][cls] = []);
+        });
+
         this.drawImageWithGrid();
         this.setupCanvasClickHandler();
-
       },
       (error) => console.error('There was an error!', error)
     );
@@ -130,7 +137,6 @@ export class PatchingComponent implements OnInit {
   }
 
   setupCanvasClickHandler(): void {
-
     if (this.isCanvasClickHandlerSet) {
       return; // If the click handler is already set up, exit the method
     }
@@ -146,8 +152,19 @@ export class PatchingComponent implements OnInit {
       const cellX = Math.floor(x / this.patchSize);
       const cellY = Math.floor(y / this.patchSize);
       console.log(`Clicked cell: (${cellX},${cellY})`);
+
+      // Add the clicked cell to the coordinatesData structure
+      const imageName = this.getCurrentImage().filename;
+      if (!this.coordinatesData[imageName]) {
+        this.coordinatesData[imageName] = {};
+        this.remainingClasses.forEach(cls => this.coordinatesData[imageName][cls] = []);
+      }
+      if (this.selectedClass && this.selectedClass !== this.defaultClass) {
+        this.coordinatesData[imageName][this.selectedClass].push([cellX, cellY]);
+      }
+
+      console.log(this.coordinatesData);
     });
     this.isCanvasClickHandlerSet = true; // Set the flag to true after setting up the click handler
   }
-
 }
