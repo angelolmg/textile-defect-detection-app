@@ -10,12 +10,14 @@ import { CommonModule } from '@angular/common';
 import { DatasetsComponent } from './pages/datasets/datasets.component';
 import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
 import { PatchingComponent } from './pages/patching/patching.component';
+import { UnsavedChangesGuard } from './unsaved-changes';
 
 const routes: Routes = [
   {
     path: 'patching/:datasetName',
     component: PatchingComponent,
-    canActivate: [ AuthGuardService ]
+    canActivate: [ AuthGuardService ],
+    canDeactivate: [UnsavedChangesGuard]
   },
   {
     path: 'list-datasets',

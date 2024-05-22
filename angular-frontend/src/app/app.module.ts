@@ -14,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
 import { RouterModule } from '@angular/router';
 import { PatchingComponent } from './pages/patching/patching.component';
+import { UnsavedChangesGuard } from './unsaved-changes';
 
 @NgModule({
   declarations: [
@@ -44,7 +45,8 @@ import { PatchingComponent } from './pages/patching/patching.component';
   providers: [
     AuthService,
     ScreenService,
-    AppInfoService
+    AppInfoService,
+    UnsavedChangesGuard
   ],
   bootstrap: [AppComponent]
 })

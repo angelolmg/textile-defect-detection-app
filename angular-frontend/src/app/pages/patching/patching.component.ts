@@ -35,6 +35,13 @@ export class PatchingComponent implements OnInit {
     this.fetchProcess();
   }
 
+   // Method to check if there are unsaved changes
+   canDeactivate(): boolean {
+    // You can implement a more sophisticated check here
+    // For simplicity, we'll assume that if there is any data in coordinatesData, there are unsaved changes
+    return Object.keys(this.coordinatesData).length === 0;
+  }
+
   fetchImages(): void {
     this.datasetsService.getImages(this.datasetName).subscribe(
       (data) => {
