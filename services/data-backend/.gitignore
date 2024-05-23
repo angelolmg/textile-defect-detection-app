@@ -1,0 +1,10 @@
+lib
+lib64
+bin
+active_session.json
+working
+share
+include
+datasets
+*.db
+*.pyc

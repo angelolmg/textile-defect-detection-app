@@ -1,6 +1,7 @@
-import { AfterViewInit, Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { DatasetsService } from '../list-datasets/datasets.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-patching',
@@ -26,7 +27,7 @@ export class PatchingComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private datasetsService: DatasetsService,
-    private router: Router
+    private http: HttpClient
   ) { }
 
   ngOnInit(): void {
@@ -159,8 +160,17 @@ export class PatchingComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log(`Marked ${this.getCurrentImage().filename} as ${this.selectedClass}`);
-    // Add your submit logic here
+    const url = `http://localhost:8000/process_dataset`;
+    this.http.post(url, { datasetName: this.datasetName, coordinatesData: this.coordinatesData }).subscribe(
+      (response) => {
+        console.log('Data submitted successfully', response);
+        alert('Coordinates data submitted successfully.');
+      },
+      (error) => {
+        console.error('Error submitting data', error);
+        alert('Error submitting coordinates data.');
+      }
+    );
   }
 
   setupCanvasClickHandler(): void {

@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import os, base64
+from PIL import Image
+import os, base64, json
 
 db = SQLAlchemy()
 
@@ -36,6 +37,79 @@ def add(name, total_images, resize_x, resize_y, patch_size, class_names):
     db.session.add(new_process)
     db.session.commit()
     return True
+
+@process_bp.route('/process_dataset', methods=['POST'])
+def process_dataset():
+    data = request.json
+    dataset_name = data.get('datasetName')
+    coordinates_data = data.get('coordinatesData')
+    
+    if not dataset_name or not coordinates_data:
+        return jsonify({'error': 'Invalid input data'}), 400
+    
+    process_response = get_process_by_name(dataset_name)
+    
+    if process_response.status_code != 200:
+        return process_response
+
+    process = process_response.get_json()
+    resize_x = process['resize_x']
+    resize_y = process['resize_y']
+    patch_size = process['patch_size']
+    class_names = process['class_names'].split(',')
+
+    dataset_path = os.path.join('datasets', dataset_name)
+    if not os.path.exists(dataset_path):
+        return jsonify({'error': 'Dataset not found'}), 404
+
+    class_paths = {}
+    for class_name in class_names:
+        class_path = os.path.join(dataset_path, class_name)
+        os.makedirs(class_path, exist_ok=True)
+        class_paths[class_name] = class_path
+
+    total_patches = 0
+    patches_per_class = {class_name: 0 for class_name in class_names}
+
+    for image_name, classes in coordinates_data.items():
+        image_path = os.path.join(dataset_path, image_name)
+        image = Image.open(image_path)
+        image = image.resize((resize_x, resize_y))
+        width, height = image.size
+        cols = width // patch_size
+        rows = height // patch_size
+
+        for row in range(rows):
+            for col in range(cols):
+                left = col * patch_size
+                upper = row * patch_size
+                right = left + patch_size
+                lower = upper + patch_size
+                patch = image.crop((left, upper, right, lower))
+                patch_name = f'{image_name}_{row}_{col}.png'
+
+                patch_class = class_names[0]
+                for class_name, coords in classes.items():
+                    if [col, row] in coords:
+                        patch_class = class_name
+                        break
+
+                patch_path = os.path.join(class_paths[patch_class], patch_name)
+                patch.save(patch_path)
+                total_patches += 1
+                patches_per_class[patch_class] += 1
+
+    metadata = {
+        'process': process,
+        'patches_per_class': patches_per_class,
+        'total_patches': total_patches
+    }
+
+    metadata_path = os.path.join(dataset_path, 'metadata.json')
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=4)
+
+    return jsonify({'message': 'Dataset processed successfully', 'metadata': metadata}), 200
 
 @process_bp.route('/add_process', methods=['POST'])
 def add_process():
