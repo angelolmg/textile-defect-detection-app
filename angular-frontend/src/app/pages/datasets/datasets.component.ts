@@ -1,5 +1,6 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-datasets',
@@ -15,7 +16,8 @@ export class DatasetsComponent {
   classNames: string = '';
   minImagesUpload: number = 3;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient,
+              private router: Router) {}
 
   onFileSelected(event: any): void {
     this.selectedFiles = Array.from(event.target.files);
@@ -78,6 +80,7 @@ export class DatasetsComponent {
       (response) => {
         alert('Files uploaded successfully');
         this.selectedFiles = []; // Clear the selected files after upload
+        this.router.navigate(['/list-datasets']);
       },
       (error) => {
         alert('Failed to upload files');

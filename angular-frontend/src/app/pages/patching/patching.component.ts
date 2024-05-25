@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DatasetsService } from '../list-datasets/datasets.service';
 import { HttpClient } from '@angular/common/http';
 
@@ -20,6 +20,7 @@ export class PatchingComponent implements OnInit {
   resizeY: number = 0;
   patchSize: number = 0;
   isCanvasClickHandlerSet = false; // Flag to track if the canvas click handler is already set
+  datasetSubmited: boolean = false;
 
   // Data structure to hold coordinates
   coordinatesData: { [key: string]: { [key: string]: [number, number][] } } = {};
@@ -27,7 +28,8 @@ export class PatchingComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private datasetsService: DatasetsService,
-    private http: HttpClient
+    private http: HttpClient,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -40,7 +42,8 @@ export class PatchingComponent implements OnInit {
    canDeactivate(): boolean {
     // You can implement a more sophisticated check here
     // For simplicity, we'll assume that if there is any data in coordinatesData, there are unsaved changes
-    return Object.keys(this.coordinatesData).length === 0;
+    // You can also check if the dataset has been submitted
+    return Object.keys(this.coordinatesData).length === 0 || this.datasetSubmited;
   }
 
   fetchImages(): void {
@@ -162,9 +165,11 @@ export class PatchingComponent implements OnInit {
   onSubmit(): void {
     const url = `http://localhost:8000/process_dataset`;
     this.http.post(url, { datasetName: this.datasetName, coordinatesData: this.coordinatesData }).subscribe(
-      (response) => {
+      (response: any) => {
+        this.datasetSubmited = true;
         console.log('Data submitted successfully', response);
-        alert('Coordinates data submitted successfully.');
+        alert(response.message);
+        this.router.navigate(['/list-datasets']);
       },
       (error) => {
         console.error('Error submitting data', error);

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image
-import os, base64, json
+import os, base64, json, zipfile, shutil, requests
 
 db = SQLAlchemy()
 
@@ -109,7 +109,31 @@ def process_dataset():
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=4)
 
-    return jsonify({'message': 'Dataset processed successfully', 'metadata': metadata}), 200
+    # Zip the dataset folder
+    zip_path = f'{dataset_path}.zip'
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(dataset_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, os.path.join(dataset_path, '..'))
+                zipf.write(file_path, arcname)
+    
+    # Send the zip file to the data server
+    with open(zip_path, 'rb') as f:
+        files = {'file': f}
+        response = requests.post('http://localhost:8080/upload_dataset', files=files)
+    
+    if response.status_code != 200:
+        return jsonify({'error': 'Failed to upload dataset to data server'}), 500
+
+    # Remove the dataset folder and the zip file
+    shutil.rmtree(dataset_path)
+    os.remove(zip_path)
+
+    # Delete the process after successful upload
+    delete_process_by_name(dataset_name)
+
+    return jsonify({'message': 'Dataset processed and uploaded successfully', 'metadata': metadata}), 201
 
 @process_bp.route('/add_process', methods=['POST'])
 def add_process():
@@ -157,6 +181,15 @@ def get_process_by_name(process_name):
         'patch_size': process.patch_size,
         'class_names': process.class_names
     })
+
+def delete_process_by_name(process_name):
+    process = Process.query.filter_by(name=process_name).first()
+    if not process:
+        return jsonify({'error': 'Process not found'}), 404
+
+    db.session.delete(process)
+    db.session.commit()
+    return jsonify({'message': 'Process deleted successfully'}), 200
 
 @process_bp.route('/delete_process/<int:process_id>', methods=['DELETE'])
 def delete_process(process_id):

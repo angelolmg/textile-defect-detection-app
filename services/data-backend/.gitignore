@@ -5,6 +5,6 @@ active_session.json
 working
 share
 include
-datasets
+uploaded_datasets
 *.db
 *.pyc
