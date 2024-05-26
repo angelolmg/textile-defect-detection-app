@@ -109,19 +109,25 @@ def process_dataset():
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=4)
 
-    # Zip the dataset folder
-    zip_path = f'{dataset_path}.zip'
+    # Zip the contents of the dataset folder
+    zip_path = f'{dataset_name}.zip'
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, os.path.join(dataset_path, '..'))
+                arcname = os.path.relpath(file_path, dataset_path)
                 zipf.write(file_path, arcname)
     
-    # Send the zip file to the data server
+    # Send the zip file to the data server with additional dataset info
     with open(zip_path, 'rb') as f:
         files = {'file': f}
-        response = requests.post('http://localhost:8080/upload_dataset', files=files)
+        data = {
+            'dataset_name': dataset_name,
+            'total_patches': total_patches,
+            'patch_size': patch_size,
+            'class_names': process['class_names']
+        }
+        response = requests.post('http://localhost:8080/upload_dataset', files=files, data=data)
     
     if response.status_code != 200:
         return jsonify({'error': 'Failed to upload dataset to data server'}), 500

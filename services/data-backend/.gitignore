@@ -6,5 +6,6 @@ working
 share
 include
 uploaded_datasets
+datasets
 *.db
 *.pyc
