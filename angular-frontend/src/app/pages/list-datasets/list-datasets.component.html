@@ -1,5 +1,33 @@
-<div class="process-list-container">
+<div class="dataset-list-container">
   <h2>Datasets</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Total Patches</th>
+        <th>Patch Size (px)</th>
+        <th>Class Names</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let dataset of datasets">
+        <td>{{ dataset.id }}</td>
+        <td>{{ dataset.dataset_name }}</td>
+        <td>{{ dataset.total_patches }}</td>
+        <td>{{ dataset.patch_size }}</td>
+        <td>{{ dataset.class_names }}</td>
+        <td>
+          <button (click)="viewDataset(dataset.dataset_name)">View</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="process-list-container">
+  <h2>Processes</h2>
   <table>
     <thead>
       <tr>

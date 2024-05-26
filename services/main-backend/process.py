@@ -38,6 +38,9 @@ def add(name, total_images, resize_x, resize_y, patch_size, class_names):
     db.session.commit()
     return True
 
+def check_process_by_name(name):
+    return Process.query.filter_by(name=name).first()
+
 @process_bp.route('/process_dataset', methods=['POST'])
 def process_dataset():
     data = request.json

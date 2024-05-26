@@ -13,11 +13,20 @@ interface Process {
   class_names: string;
 }
 
+interface Dataset {
+  id: number;
+  dataset_name: string;
+  total_patches: number;
+  patch_size: number;
+  class_names: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class DatasetsService {
   private apiUrl = 'http://localhost:8000'; // Adjust this URL to your backend's URL
+  private dataUrl = 'http://localhost:8080'; // Adjust this URL to your backend's URL
 
   constructor(private http: HttpClient) { }
 
@@ -31,5 +40,9 @@ export class DatasetsService {
 
   getImages(datasetName: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/get_images/${datasetName}`);
+  }
+
+  getDatasets(): Observable<Dataset[]> {
+    return this.http.get<Dataset[]>(`${this.dataUrl}/datasets`);
   }
 }

@@ -83,7 +83,7 @@ export class DatasetsComponent {
         this.router.navigate(['/list-datasets']);
       },
       (error) => {
-        alert('Failed to upload files');
+        alert(error['error'].error);
       }
     );
   }

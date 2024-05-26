@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import time
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from process import process_bp, db, add
+from process import process_bp, db, add, check_process_by_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -55,6 +56,20 @@ def upload_images():
     # Validate resize dimensions and patch size
     if resize_x < 320 or resize_y < 320 or patch_size < 32 or resize_x % patch_size != 0 or resize_y % patch_size != 0:
         return jsonify({'error': 'Invalid resize or patch size dimensions'}), 400
+
+    # Check if Process with dataset_name already exists
+    if check_process_by_name(dataset_name):
+        return jsonify({'error': f'Process with name "{dataset_name}" already exists'}), 400
+
+    # Check if dataset with dataset_name already exists
+    response = requests.get(f'http://localhost:8080/check_dataset/{dataset_name}')
+    if response.status_code == 200:
+        data = response.json()
+        if data.get('exists'):
+            return jsonify({'error': f'Dataset with name "{dataset_name}" already exists'}), 400
+    else:
+        return jsonify({'error': 'Failed to check if dataset exists'}), 500
+
 
     folder_path = os.path.join('datasets', dataset_name)
     
