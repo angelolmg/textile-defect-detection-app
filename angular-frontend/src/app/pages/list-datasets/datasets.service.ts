@@ -45,4 +45,8 @@ export class DatasetsService {
   getDatasets(): Observable<Dataset[]> {
     return this.http.get<Dataset[]>(`${this.dataUrl}/datasets`);
   }
+
+  uploadZipDataset(formData: FormData): Observable<any> {
+    return this.http.post(`${this.dataUrl}/upload_zip_dataset`, formData);
+  }
 }

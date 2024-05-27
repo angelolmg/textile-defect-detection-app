@@ -1,7 +1,6 @@
 <div class="upload-container">
   <h2>Upload Images</h2>
   <input type="file" #fileInput (change)="onFileSelected($event)" multiple hidden />
-  <button (click)="fileInput.click()">Select Images</button>
   <div class="drag-drop-area" (dragover)="onDragOver($event)" (drop)="onDrop($event)" (click)="fileInput.click()">
     <p>Drag and drop images here</p>
   </div>
@@ -29,5 +28,17 @@
     <input type="text" id="classNames" [(ngModel)]="classNames" required>
   </div>
 
-  <button (click)="uploadFiles()">Upload</button>
+  <button (click)="uploadFiles()">Upload Images</button>
 </div>
+
+<div class="upload-container">
+  <h2>Upload Full Dataset (.zip)</h2>
+  <div class="upload-dataset-row">
+    <input type="file" #zipFileInput (change)="onZipFileSelected($event)" accept=".zip" hidden />
+    <button (click)="zipFileInput.click()">Select File</button>
+    <span class="selected-file-name" *ngIf="selectedZipFile.length">{{ selectedZipFile[0].name }}</span>
+  </div>
+
+  <button (click)="uploadZipFile()">Upload Dataset</button>
+</div>
+

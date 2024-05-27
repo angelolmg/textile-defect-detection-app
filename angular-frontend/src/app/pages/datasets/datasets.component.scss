@@ -133,3 +133,18 @@ button:active {
   border-color: #66afe9;
   outline: none;
 }
+
+.upload-dataset-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.upload-dataset-row button {
+  margin-right: 15px;
+}
+
+.selected-file-name {
+  font-size: 16px;
+  color: #555;
+}

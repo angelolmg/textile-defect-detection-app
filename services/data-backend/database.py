@@ -1,7 +1,10 @@
+# TODO: Save dataset info to the database if theres already a metadata file
+
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import os
+import os, json
 import zipfile
+from PIL import Image
 from flask_cors import CORS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +29,97 @@ class Dataset(db.Model):
 
 with app.app_context():
     db.create_all()
+
+@app.route('/upload_zip_dataset', methods=['POST'])
+def upload_zip_dataset():
+    print("Uploading zip dataset")
+    if 'file' not in request.files:
+        print("No file part")
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    dataset_name = request.form['dataset_name']
+
+    if file.filename == '':
+        print("No selected file")
+        return jsonify({'error': 'No selected file'}), 400
+
+    # Save the file
+    filepath = os.path.join('/tmp', file.filename)
+    file.save(filepath)
+
+    # Create a cover folder named after the zip file (excluding the .zip extension)
+    cover_folder_name = os.path.splitext(file.filename)[0]
+    cover_folder_path = os.path.join('datasets', cover_folder_name)
+    os.makedirs(cover_folder_path, exist_ok=True)
+
+    # Unzip the file to the cover folder
+    with zipfile.ZipFile(filepath, 'r') as zip_ref:
+        zip_ref.extractall(cover_folder_path)
+
+    os.remove(filepath)
+
+    # Check if metadata.json exists
+    metadata_path = os.path.join(cover_folder_path, 'metadata.json')
+    if not os.path.exists(metadata_path):
+        print("Creating metadata.json")
+        # Create metadata.json if it doesn't exist
+        class_names = os.listdir(cover_folder_path)
+        class_names = [d for d in class_names if os.path.isdir(os.path.join(cover_folder_path, d))]
+        total_patches = 0
+        patches_per_class = {}
+
+        for class_name in class_names:
+            class_path = os.path.join(cover_folder_path, class_name)
+            image_files = [f for f in os.listdir(class_path) if os.path.isfile(os.path.join(class_path, f))]
+            num_images = len(image_files)
+            patches_per_class[class_name] = num_images
+            total_patches += num_images
+
+        sample_image_path = None
+        for class_name in class_names:
+            class_path = os.path.join(cover_folder_path, class_name)
+            image_files = [f for f in os.listdir(class_path) if os.path.isfile(os.path.join(class_path, f))]
+            if image_files:
+                sample_image_path = os.path.join(class_path, image_files[0])
+                break
+        
+        if sample_image_path:
+            with Image.open(sample_image_path) as img:
+                patch_size, _ = img.size
+        else:
+            patch_size, _ = 31, 31  # default values if no images found
+
+        metadata = {
+            "process": {
+                "class_names": ','.join(class_names),
+                "id": 1,
+                "images_left": 0,
+                "name": cover_folder_name,
+                "patch_size": patch_size,  # Assuming patch size is the same as resize dimensions
+                "resize_x": 320,
+                "resize_y": 320,
+                "total_images": 0
+            },
+            "patches_per_class": patches_per_class,
+            "total_patches": total_patches
+        }
+
+        with open(metadata_path, 'w') as metadata_file:
+            json.dump(metadata, metadata_file, indent=4)
+
+        # Save dataset info to the database
+        dataset = Dataset(
+            dataset_name=cover_folder_name,
+            total_patches=total_patches,
+            patch_size=patch_size,
+            class_names=','.join(class_names)
+        )
+        db.session.add(dataset)
+        db.session.commit()
+
+    print("Uploaded and dataset information saved successfully")
+    return jsonify({'message': 'File uploaded and dataset information saved successfully'}), 200
 
 @app.route('/upload_dataset', methods=['POST'])
 def upload_dataset():
@@ -58,7 +152,7 @@ def upload_dataset():
         dataset_name=dataset_name,
         total_patches=total_patches,
         patch_size=patch_size,
-        class_names=class_names
+        class_names="test"
     )
     db.session.add(dataset)
     db.session.commit()
@@ -92,4 +186,4 @@ def check_dataset(dataset_name):
 
 
 if __name__ == '__main__':
-    app.run(port=8080)
+    app.run(port=8080, debug=True)
