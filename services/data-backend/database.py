@@ -27,8 +27,52 @@ class Dataset(db.Model):
     def __repr__(self):
         return f'<Dataset {self.dataset_name}>'
 
+class AugmentationRecipe(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    recipe_name = db.Column(db.String(80), nullable=False)
+    horizontal_flip = db.Column(db.Float, default=0)
+    vertical_flip = db.Column(db.Float, default=0)
+    random_rotate90 = db.Column(db.Float, default=0)
+    rotate = db.Column(db.Float, default=0)
+    random_brightness_contrast = db.Column(db.Float, default=0)
+    advanced_blur = db.Column(db.Float, default=0)
+    random_brightness = db.Column(db.Float, default=0)
+    random_contrast = db.Column(db.Float, default=0)
+    gauss_noise = db.Column(db.Float, default=0)
+    unsharp_mask = db.Column(db.Float, default=0)
+
+    def __repr__(self):
+        return f'<AugmentationRecipe {self.recipe_name}>'
+
+
 with app.app_context():
     db.create_all()
+
+@app.route('/save_augmentation', methods=['POST'])
+def save_augmentation():
+    data = request.json
+    recipe_name = data.get('recipeName')
+    if not recipe_name:
+        return jsonify({'error': 'Recipe name is required'}), 400
+
+    augmentation_recipe = AugmentationRecipe(
+        recipe_name=recipe_name,
+        horizontal_flip=data.get('horizontalFlip', 0),
+        vertical_flip=data.get('verticalFlip', 0),
+        random_rotate90=data.get('randomRotate90', 0),
+        rotate=data.get('rotate', 0),
+        random_brightness_contrast=data.get('randomBrightnessContrast', 0),
+        advanced_blur=data.get('advancedBlur', 0),
+        random_brightness=data.get('randomBrightness', 0),
+        random_contrast=data.get('randomContrast', 0),
+        gauss_noise=data.get('gaussNoise', 0),
+        unsharp_mask=data.get('unsharpMask', 0)
+    )
+
+    db.session.add(augmentation_recipe)
+    db.session.commit()
+
+    return jsonify({'message': 'Augmentation recipe saved successfully'}), 200
 
 @app.route('/upload_zip_dataset', methods=['POST'])
 def upload_zip_dataset():

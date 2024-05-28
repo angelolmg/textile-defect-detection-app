@@ -10,18 +10,20 @@ import { AppRoutingModule } from './app-routing.module';
 import {HttpClientModule} from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { DatasetsComponent } from './pages/datasets/datasets.component';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.component';
 import { RouterModule } from '@angular/router';
 import { PatchingComponent } from './pages/patching/patching.component';
 import { UnsavedChangesGuard } from './unsaved-changes';
+import { RegisterRecipeComponent } from './pages/register-recipe/register-recipe.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     DatasetsComponent,
     ListDatasetsComponent,
-    PatchingComponent
+    PatchingComponent,
+    RegisterRecipeComponent
   ],
   imports: [
     CommonModule,
@@ -38,7 +40,8 @@ import { UnsavedChangesGuard } from './unsaved-changes';
     AppRoutingModule,
     HttpClientModule,
     FormsModule,
-    RouterModule
+    RouterModule,
+    ReactiveFormsModule
 
 
   ],

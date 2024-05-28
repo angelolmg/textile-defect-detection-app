@@ -21,6 +21,10 @@ export const navigation = [
         text: 'Upload images',
         path: '/datasets'
       },
+      {
+        text: 'Register Recipe',
+        path: '/register-recipe'
+      },
     ]
   },
   // {

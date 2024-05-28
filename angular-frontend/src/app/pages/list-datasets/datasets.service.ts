@@ -49,4 +49,8 @@ export class DatasetsService {
   uploadZipDataset(formData: FormData): Observable<any> {
     return this.http.post(`${this.dataUrl}/upload_zip_dataset`, formData);
   }
+
+  saveAugmentationRecipe(recipe: any): Observable<any> {
+    return this.http.post(`${this.dataUrl}/save_augmentation`, recipe);
+  }
 }

@@ -1,0 +1,27 @@
+<div class="register-recipe-container">
+  <h2>Register Augmentation Recipe</h2>
+  <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()">
+    <div>
+      <label for="recipeName">Recipe Name:</label>
+      <input type="text" id="recipeName" formControlName="recipeName" required />
+      <div *ngIf="recipeForm.get('recipeName')?.invalid && recipeForm.get('recipeName')?.touched" class="error-message">
+        Recipe name is required.
+      </div>
+    </div>
+    <div *ngFor="let aug of augmentations">
+      <label [for]="aug.name">{{ aug.label }} (p):</label>
+      <input
+        type="number"
+        [formControlName]="aug.name"
+        [id]="aug.name"
+        min="0"
+        max="1"
+        step="0.01"
+      />
+      <div *ngIf="recipeForm.get(aug.name)?.invalid && recipeForm.get(aug.name)?.touched" class="error-message">
+        Value must be between 0 and 1.
+      </div>
+    </div>
+    <button type="submit" [disabled]="recipeForm.invalid">Submit</button>
+  </form>
+</div>
