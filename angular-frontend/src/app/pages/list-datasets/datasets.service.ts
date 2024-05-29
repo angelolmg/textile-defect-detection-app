@@ -53,4 +53,8 @@ export class DatasetsService {
   saveAugmentationRecipe(recipe: any): Observable<any> {
     return this.http.post(`${this.dataUrl}/save_augmentation`, recipe);
   }
+
+  getAugmentationRecipes(): Observable<any> {
+    return this.http.get(`${this.dataUrl}/get_augmentations`);
+  }
 }

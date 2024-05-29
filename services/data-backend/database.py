@@ -48,6 +48,26 @@ class AugmentationRecipe(db.Model):
 with app.app_context():
     db.create_all()
 
+@app.route('/get_augmentations', methods=['GET'])
+def get_augmentations():
+    recipes = AugmentationRecipe.query.all()
+    recipes_list = [{
+        'id': recipe.id,
+        'recipeName': recipe.recipe_name,
+        'horizontalFlip': recipe.horizontal_flip,
+        'verticalFlip': recipe.vertical_flip,
+        'randomRotate90': recipe.random_rotate90,
+        'rotate': recipe.rotate,
+        'randomBrightnessContrast': recipe.random_brightness_contrast,
+        'advancedBlur': recipe.advanced_blur,
+        'randomBrightness': recipe.random_brightness,
+        'randomContrast': recipe.random_contrast,
+        'gaussNoise': recipe.gauss_noise,
+        'unsharpMask': recipe.unsharp_mask
+    } for recipe in recipes]
+
+    return jsonify(recipes_list), 200
+
 @app.route('/save_augmentation', methods=['POST'])
 def save_augmentation():
     data = request.json

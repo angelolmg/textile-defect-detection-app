@@ -25,3 +25,21 @@
     <button type="submit" [disabled]="recipeForm.invalid">Submit</button>
   </form>
 </div>
+
+<div class="list-recipe-container">
+  <h2>Registered Recipes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Recipe Name</th>
+        <th *ngFor="let aug of augmentations">{{ aug.label }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let recipe of recipes">
+        <td>{{ recipe.recipeName }}</td>
+        <td *ngFor="let aug of augmentations">{{ recipe[aug.name] }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

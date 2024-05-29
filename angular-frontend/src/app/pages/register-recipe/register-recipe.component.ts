@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DatasetsService } from '../list-datasets/datasets.service';
 
@@ -7,8 +7,10 @@ import { DatasetsService } from '../list-datasets/datasets.service';
   templateUrl: './register-recipe.component.html',
   styleUrls: ['./register-recipe.component.scss']
 })
-export class RegisterRecipeComponent {
+export class RegisterRecipeComponent implements OnInit{
   recipeForm: FormGroup;
+  recipes: any[] = [];
+
   augmentations = [
     { name: 'horizontalFlip', label: 'Horizontal Flip' },
     { name: 'verticalFlip', label: 'Vertical Flip' },
@@ -38,6 +40,10 @@ export class RegisterRecipeComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.fetchRecipes();
+  }
+
   onSubmit() {
     if (this.recipeForm.valid) {
       const formValues = this.recipeForm.value;
@@ -54,5 +60,16 @@ export class RegisterRecipeComponent {
     } else {
       console.log('Form is not valid');
     }
+  }
+
+  fetchRecipes() {
+    this.datasetsService.getAugmentationRecipes().subscribe(
+      (response) => {
+        this.recipes = response;
+      },
+      (error) => {
+        console.error('Error fetching recipes', error);
+      }
+    );
   }
 }
