@@ -16,6 +16,7 @@ import { RouterModule } from '@angular/router';
 import { PatchingComponent } from './pages/patching/patching.component';
 import { UnsavedChangesGuard } from './unsaved-changes';
 import { RegisterRecipeComponent } from './pages/register-recipe/register-recipe.component';
+import { ModelsComponent } from './pages/models/models.component';
 
 @NgModule({
   declarations: [
@@ -23,7 +24,8 @@ import { RegisterRecipeComponent } from './pages/register-recipe/register-recipe
     DatasetsComponent,
     ListDatasetsComponent,
     PatchingComponent,
-    RegisterRecipeComponent
+    RegisterRecipeComponent,
+    ModelsComponent
   ],
   imports: [
     CommonModule,

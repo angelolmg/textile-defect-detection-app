@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { DatasetsService } from '../list-datasets/datasets.service';
+import { DatasetsService } from '../../shared/services/datasets.service';
 
 @Component({
   selector: 'app-register-recipe',

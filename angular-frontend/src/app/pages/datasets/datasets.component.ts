@@ -1,7 +1,7 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { DatasetsService } from '../list-datasets/datasets.service';
+import { DatasetsService } from '../../shared/services/datasets.service';
 
 @Component({
   selector: 'app-datasets',

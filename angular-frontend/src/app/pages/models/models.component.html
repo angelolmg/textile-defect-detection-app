@@ -1,0 +1,90 @@
+<div class="model-list-container">
+  <h2>Models</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Accuracy</th>
+        <th>Training Dataset</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let model of models">
+        <td>{{ model.name }}</td>
+        <td>{{ model.accuracy }}</td>
+        <td>{{ model.dataset }}</td>
+        <td>{{ model.description }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="train-model-container">
+  <h2>Train New Model</h2>
+  <form [formGroup]="trainModelForm" (ngSubmit)="onSubmit()">
+    <div>
+      <label for="modelName">Model Name:</label>
+      <input id="modelName" type="text" formControlName="modelName" required />
+      <div *ngIf="trainModelForm.get('modelName')?.invalid && trainModelForm.get('modelName')?.touched" class="error-message">
+        Model name is required.
+      </div>
+    </div>
+    <div>
+      <label for="modelArchitecture">Model Architecture:</label>
+      <select id="modelArchitecture" formControlName="modelArchitecture" required>
+        <option *ngFor="let arch of modelArchitectures" [value]="arch">{{ arch }}</option>
+      </select>
+      <div *ngIf="trainModelForm.get('modelArchitecture')?.invalid && trainModelForm.get('modelArchitecture')?.touched" class="error-message">
+        Model architecture is required.
+      </div>
+    </div>
+    <div>
+      <label for="epochs">Number of Epochs:</label>
+      <input id="epochs" type="number" formControlName="epochs" required min="1" />
+      <div *ngIf="trainModelForm.get('epochs')?.invalid && trainModelForm.get('epochs')?.touched" class="error-message">
+        Number of epochs must be at least 1.
+      </div>
+    </div>
+    <div>
+      <label for="dataset">Dataset:</label>
+      <select id="dataset" formControlName="dataset" required>
+        <option *ngFor="let dataset of datasets" [value]="dataset">{{ dataset }}</option>
+      </select>
+      <div *ngIf="trainModelForm.get('dataset')?.invalid && trainModelForm.get('dataset')?.touched" class="error-message">
+        Dataset is required.
+      </div>
+    </div>
+    <div>
+      <label for="trainSplit">Training Split:</label>
+      <input id="trainSplit" type="number" formControlName="trainSplit" required min="0" max="1" step="0.01" />
+      <div *ngIf="trainModelForm.get('trainSplit')?.invalid && trainModelForm.get('trainSplit')?.touched" class="error-message">
+        Value must be between 0 and 1.
+      </div>
+    </div>
+    <div>
+      <label for="valSplit">Validation Split:</label>
+      <input id="valSplit" type="number" formControlName="valSplit" required min="0" max="1" step="0.01" />
+      <div *ngIf="trainModelForm.get('valSplit')?.invalid && trainModelForm.get('valSplit')?.touched" class="error-message">
+        Value must be between 0 and 1.
+      </div>
+    </div>
+    <div>
+      <label for="testSplit">Test Split:</label>
+      <input id="testSplit" type="number" formControlName="testSplit" required min="0" max="1" step="0.01" />
+      <div *ngIf="trainModelForm.get('testSplit')?.invalid && trainModelForm.get('testSplit')?.touched" class="error-message">
+        Value must be between 0 and 1.
+      </div>
+    </div>
+    <div>
+      <label for="augmentationRecipe">Augmentation Recipe:</label>
+      <select id="augmentationRecipe" formControlName="augmentationRecipe" required>
+        <option *ngFor="let recipe of augmentationRecipes" [value]="recipe">{{ recipe }}</option>
+      </select>
+      <div *ngIf="trainModelForm.get('augmentationRecipe')?.invalid && trainModelForm.get('augmentationRecipe')?.touched" class="error-message">
+        Augmentation recipe is required.
+      </div>
+    </div>
+    <button type="submit" [disabled]="trainModelForm.invalid">Submit</button>
+  </form>
+</div>

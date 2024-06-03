@@ -12,8 +12,14 @@ import { ListDatasetsComponent } from './pages/list-datasets/list-datasets.compo
 import { PatchingComponent } from './pages/patching/patching.component';
 import { UnsavedChangesGuard } from './unsaved-changes';
 import { RegisterRecipeComponent } from './pages/register-recipe/register-recipe.component';
+import { ModelsComponent } from './pages/models/models.component';
 
 const routes: Routes = [
+  {
+    path: 'models',
+    component: ModelsComponent,
+    canActivate: [ AuthGuardService ]
+  },
   {
     path: 'register-recipe',
     component: RegisterRecipeComponent,

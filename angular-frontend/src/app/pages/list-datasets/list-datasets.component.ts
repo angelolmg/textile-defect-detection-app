@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { DatasetsService } from './datasets.service';
+import { DatasetsService } from '../../shared/services/datasets.service';
 import { Router } from '@angular/router';
 
 interface Process {

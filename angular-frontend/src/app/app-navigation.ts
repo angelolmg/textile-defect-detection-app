@@ -27,6 +27,11 @@ export const navigation = [
       },
     ]
   },
+  {
+    text: 'Models',
+    path: '/models',
+    icon: 'video',
+  },
   // {
   //   text: 'Examples',
   //   icon: 'folder',

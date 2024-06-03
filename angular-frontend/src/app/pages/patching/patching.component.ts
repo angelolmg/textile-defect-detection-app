@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DatasetsService } from '../list-datasets/datasets.service';
+import { DatasetsService } from '../../shared/services/datasets.service';
 import { HttpClient } from '@angular/common/http';
 
 @Component({
