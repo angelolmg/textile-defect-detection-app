@@ -26,7 +26,7 @@ export class ModelsComponent implements OnInit {
     { name: 'Model B', accuracy: '89%', dataset: 'Dataset 2', description: 'This is a description for Model B.' }
   ];
 
-  modelArchitectures = ['Architecture 1', 'Architecture 2', 'Architecture 3'];
+  modelArchitectures = ['yolov8s-cls.pt', 'Architecture 2', 'Architecture 3'];
   datasets: any[] = [];
   augmentationRecipes: any[] = [];
 
@@ -76,7 +76,7 @@ export class ModelsComponent implements OnInit {
       selectedDataset.class_names.split(',').forEach((className: string) => {
         this.numAugmentations.push(this.fb.group({
           className: [className],
-          num: ['', [Validators.required, Validators.min(2), Validators.max(10)]]
+          num: ['', [Validators.required, Validators.min(1), Validators.max(10)]]
         }));
       });
     }
@@ -96,9 +96,9 @@ export class ModelsComponent implements OnInit {
       };
 
       console.log('Training model with values:', trainingTemplate);
-      this.modelsService.trainModel(trainingTemplate).subscribe(() => {
+      this.modelsService.trainModel(trainingTemplate).subscribe((response) => {
         // this.trainModelForm.reset();
-        alert('Model trained successfully!');
+        alert(response.message);
       });
     } else {
       console.error('Form is invalid');

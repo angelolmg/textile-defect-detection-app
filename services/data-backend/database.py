@@ -315,6 +315,8 @@ def augment_dataset():
     augmentation_recipe_name = data['augmentationRecipe']
     num_augmentations = data['numAugmentations']
 
+    random.seed(42)
+
     # Retrieve the augmentation recipe from the database
     augmentation_recipe = AugmentationRecipe.query.filter_by(recipe_name=augmentation_recipe_name).first()
     if not augmentation_recipe:

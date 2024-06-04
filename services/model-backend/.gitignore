@@ -10,3 +10,4 @@ datasets
 *.db
 *.pyc
 tmp
+runs
