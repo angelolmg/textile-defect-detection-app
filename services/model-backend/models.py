@@ -1,4 +1,5 @@
 import os
+import requests
 from flask_cors import CORS
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -13,8 +14,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Define the ModelTemplate model
-class ModelTemplate(db.Model):
+# Define the TrainingTemplate model
+class TrainingTemplate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(80), nullable=False)
     model_architecture = db.Column(db.String(80), nullable=False)
@@ -24,47 +25,54 @@ class ModelTemplate(db.Model):
     val_split = db.Column(db.Float, nullable=False)
     test_split = db.Column(db.Float, nullable=False)
     augmentation_recipe = db.Column(db.String(80), nullable=False)
+    num_augmentations = db.Column(db.JSON, nullable=False)
+
+    def __repr__(self):
+        return f'<TrainingTemplate {self.model_name}>'
 
 # Initialize the database
 with app.app_context():
     db.create_all()
 
-# Endpoint to receive and print the object
-@app.route('/api/models', methods=['POST'])
-def add_model():
+# Method to train model and augment dataset
+@app.route('/api/models/train', methods=['POST'])
+def train_model():
     data = request.json
-    new_model = ModelTemplate(
-        model_name=data['modelName'],
-        model_architecture=data['modelArchitecture'],
-        epochs=data['epochs'],
-        dataset=data['dataset'],
-        train_split=data['trainSplit'],
-        val_split=data['valSplit'],
-        test_split=data['testSplit'],
-        augmentation_recipe=data['augmentationRecipe']
-    )
-    db.session.add(new_model)
-    db.session.commit()
+    model_name = data['modelName']
+    model_architecture = data['modelArchitecture']
+    epochs = data['epochs']
+    dataset_name = data['dataset']
+    train_split = data['trainSplit']
+    val_split = data['valSplit']
+    test_split = data['testSplit']
+    augmentation_recipe_name = data['augmentationRecipe']
+    num_augmentations = data['numAugmentations']
 
-    return jsonify({'id': new_model.id}), 201
+    # Create object for dataset and augmentation details
+    training_data = {
+        'dataset': dataset_name,
+        'trainSplit': train_split,
+        'valSplit': val_split,
+        'testSplit': test_split,
+        'augmentationRecipe': augmentation_recipe_name,
+        'numAugmentations': num_augmentations
+    }
 
-# Endpoint to get all models
-@app.route('/api/models', methods=['GET'])
-def get_models():
-    models = ModelTemplate.query.all()
-    model_list = [{
-        'id': model.id,
-        'modelName': model.model_name,
-        'modelArchitecture': model.model_architecture,
-        'epochs': model.epochs,
-        'dataset': model.dataset,
-        'trainSplit': model.train_split,
-        'valSplit': model.val_split,
-        'testSplit': model.test_split,
-        'augmentationRecipe': model.augmentation_recipe
-    } for model in models]
+    # Make request to endpoint for dataset augmentation and zipping
+    response = requests.post('http://localhost:8080/api/augment', json=training_data)
+    tmp_folder = os.path.join(BASE_DIR, 'tmp')
+    if not os.path.exists(tmp_folder):
+        os.makedirs(tmp_folder)
 
-    return jsonify(model_list), 200
+    # Check if request was successful
+    if response.status_code == 200:
+        # Save the received zip file
+        with open(os.path.join('tmp', 'augmented_dataset.zip'), 'wb') as f:
+            f.write(response.content)
+        return jsonify({'message': 'Training successful and augmented dataset saved.'}), 200
+    else:
+        return jsonify({'error': 'Training failed or dataset augmentation unsuccessful.'}), 500
+    
 
 if __name__ == '__main__':
     app.run(port=8090, debug=True)

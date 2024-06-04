@@ -92,3 +92,28 @@ button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+.augmentation-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  background-color: #e9e9e9;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.augmentation-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.augmentation-item label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.augmentation-item input {
+  width: 100%;
+}

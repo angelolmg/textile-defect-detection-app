@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
-interface Model {
-  id: number;
+interface TrainingTemplate {
   modelName: string;
   modelArchitecture: string;
   epochs: number;
@@ -12,6 +11,7 @@ interface Model {
   valSplit: number;
   testSplit: number;
   augmentationRecipe: string;
+  numAugmentations: any
 }
 
 @Injectable({
@@ -22,11 +22,11 @@ export class ModelsService {
 
   constructor(private http: HttpClient) {}
 
-  getModels(): Observable<Model[]> {
-    return this.http.get<Model[]>(this.apiUrl);
+  getModels(): Observable<TrainingTemplate[]> {
+    return this.http.get<TrainingTemplate[]>(this.apiUrl);
   }
 
-  addModel(model: Model): Observable<Model> {
-    return this.http.post<Model>(this.apiUrl, model);
+  trainModel(model: TrainingTemplate): Observable<any> {
+    return this.http.post<TrainingTemplate>(this.apiUrl + '/train', model);
   }
 }

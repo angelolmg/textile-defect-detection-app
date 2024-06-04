@@ -1,11 +1,15 @@
 # TODO: Save dataset info to the database if theres already a metadata file
 
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-import os, json
+import os, shutil, json
 import zipfile
+import cv2
 from PIL import Image
+import albumentations as A
+import numpy as np
+import random
 from flask_cors import CORS
+from flask import Flask, request, jsonify, send_file, make_response
+from flask_sqlalchemy import SQLAlchemy
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -36,8 +40,6 @@ class AugmentationRecipe(db.Model):
     rotate = db.Column(db.Float, default=0)
     random_brightness_contrast = db.Column(db.Float, default=0)
     advanced_blur = db.Column(db.Float, default=0)
-    random_brightness = db.Column(db.Float, default=0)
-    random_contrast = db.Column(db.Float, default=0)
     gauss_noise = db.Column(db.Float, default=0)
     unsharp_mask = db.Column(db.Float, default=0)
 
@@ -47,6 +49,33 @@ class AugmentationRecipe(db.Model):
 
 with app.app_context():
     db.create_all()
+    if not AugmentationRecipe.query.first():
+        sample_recipes = [
+            AugmentationRecipe(
+                recipe_name="Sample recipe 1",
+                horizontal_flip=0.5,
+                vertical_flip=0.5,
+                random_rotate90=0.5,
+                rotate=0.75,
+                random_brightness_contrast=0.5,
+                advanced_blur=0.33,
+                gauss_noise=0.25,
+                unsharp_mask=0.1
+            ),
+            AugmentationRecipe(
+                recipe_name="Sample recipe 2",
+                horizontal_flip=0.4,
+                vertical_flip=0.4,
+                random_rotate90=0.4,
+                rotate=0.7,
+                random_brightness_contrast=0.4,
+                advanced_blur=0.3,
+                gauss_noise=0.2,
+                unsharp_mask=0.2
+            ),
+        ]
+        db.session.bulk_save_objects(sample_recipes)
+        db.session.commit()
 
 @app.route('/get_augmentations', methods=['GET'])
 def get_augmentations():
@@ -60,8 +89,6 @@ def get_augmentations():
         'rotate': recipe.rotate,
         'randomBrightnessContrast': recipe.random_brightness_contrast,
         'advancedBlur': recipe.advanced_blur,
-        'randomBrightness': recipe.random_brightness,
-        'randomContrast': recipe.random_contrast,
         'gaussNoise': recipe.gauss_noise,
         'unsharpMask': recipe.unsharp_mask
     } for recipe in recipes]
@@ -83,8 +110,6 @@ def save_augmentation():
         rotate=data.get('rotate', 0),
         random_brightness_contrast=data.get('randomBrightnessContrast', 0),
         advanced_blur=data.get('advancedBlur', 0),
-        random_brightness=data.get('randomBrightness', 0),
-        random_contrast=data.get('randomContrast', 0),
         gauss_noise=data.get('gaussNoise', 0),
         unsharp_mask=data.get('unsharpMask', 0)
     )
@@ -248,6 +273,90 @@ def check_dataset(dataset_name):
     else:
         return jsonify({'exists': False}), 200
 
+def split_and_save_images(class_input_folder, class_output_folder, selected_image_files, num_aug, augmentations):
+    for filename in selected_image_files:
+        image_path = os.path.join(class_input_folder, filename)
+        image = Image.open(image_path)
+        for i in range(num_aug):
+            augmented_image = augmentations(image=np.array(image))['image']
+            new_image_path = os.path.join(class_output_folder, f"{os.path.splitext(filename)[0]}_{i+1}.png")
+            Image.fromarray(augmented_image).save(new_image_path)
+
+def create_and_split_folders(input_folder, output_folder, splits, num_augmentations, augmentations):
+    train_split, val_split, test_split = splits
+    for class_name, num_aug in num_augmentations.items():
+        class_input_folder = os.path.join(input_folder, class_name)
+        class_train_folder = os.path.join(output_folder, 'train', class_name)
+        class_val_folder = os.path.join(output_folder, 'val', class_name)
+        class_test_folder = os.path.join(output_folder, 'test', class_name)
+
+        if not os.path.exists(class_train_folder):
+            os.makedirs(class_train_folder)
+        if not os.path.exists(class_val_folder):
+            os.makedirs(class_val_folder)
+        if not os.path.exists(class_test_folder):
+            os.makedirs(class_test_folder)
+
+        image_files = [filename for filename in os.listdir(class_input_folder) if filename.endswith('.png')]
+        selected_image_files = random.sample(image_files, min(1000, len(image_files))) if len(image_files) > 1000 else image_files
+
+        split_and_save_images(class_input_folder, class_train_folder, selected_image_files[:int(len(selected_image_files) * train_split)], num_aug, augmentations)
+        split_and_save_images(class_input_folder, class_val_folder, selected_image_files[int(len(selected_image_files) * train_split):int(len(selected_image_files) * (train_split + val_split))], num_aug, augmentations)
+        split_and_save_images(class_input_folder, class_test_folder, selected_image_files[int(len(selected_image_files) * (train_split + val_split)):], num_aug, augmentations)
+
+# Endpoint to augment and zip dataset
+@app.route('/api/augment', methods=['POST'])
+def augment_dataset():
+    data = request.json
+    dataset_name = data['dataset']
+    train_split = data['trainSplit']
+    val_split = data['valSplit']
+    test_split = data['testSplit']
+    augmentation_recipe_name = data['augmentationRecipe']
+    num_augmentations = data['numAugmentations']
+
+    # Retrieve the augmentation recipe from the database
+    augmentation_recipe = AugmentationRecipe.query.filter_by(recipe_name=augmentation_recipe_name).first()
+    if not augmentation_recipe:
+        return jsonify({'error': 'Augmentation recipe not found'}), 404
+
+    input_folder = os.path.join('datasets', dataset_name)
+    output_folder = os.path.join('datasets', f'{dataset_name}_augmented')
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Define augmentations dynamically
+    augmentations = A.Compose([
+        A.HorizontalFlip(p=augmentation_recipe.horizontal_flip),
+        A.VerticalFlip(p=augmentation_recipe.vertical_flip),
+        A.RandomRotate90(p=augmentation_recipe.random_rotate90),
+        A.Rotate(limit=180, interpolation=cv2.INTER_LANCZOS4, border_mode=cv2.BORDER_REFLECT, p=augmentation_recipe.rotate),
+        A.RandomBrightnessContrast(p=augmentation_recipe.random_brightness_contrast),
+        A.AdvancedBlur(p=augmentation_recipe.advanced_blur),
+        A.GaussNoise(p=augmentation_recipe.gauss_noise),
+        A.UnsharpMask(p=augmentation_recipe.unsharp_mask),
+    ])
+
+    # Augment images and split into train/val/test folders
+    create_and_split_folders(input_folder, output_folder, (train_split, val_split, test_split), num_augmentations, augmentations)
+
+    # Zip the augmented dataset
+    zip_filename = f"{output_folder}.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        for root, _, files in os.walk(output_folder):
+            for file in files:
+                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), output_folder))
+
+    # Clean up intermediate folders
+    shutil.rmtree(output_folder)
+
+    # Create a response with the zip file
+    response = make_response(send_file(zip_filename, mimetype='application/zip'))
+    
+    # Set the Content-Disposition header to make the browser prompt the user to download the file with the specified name
+    response.headers['Content-Disposition'] = f'attachment; filename={os.path.basename(zip_filename)}'
+    
+    return response
 
 if __name__ == '__main__':
     app.run(port=8080, debug=True)

@@ -18,8 +18,6 @@ export class RegisterRecipeComponent implements OnInit{
     { name: 'rotate', label: 'Rotate' },
     { name: 'randomBrightnessContrast', label: 'Random Brightness Contrast' },
     { name: 'advancedBlur', label: 'Advanced Blur' },
-    { name: 'randomBrightness', label: 'Random Brightness' },
-    { name: 'randomContrast', label: 'Random Contrast' },
     { name: 'gaussNoise', label: 'Gauss Noise' },
     { name: 'unsharpMask', label: 'Unsharp Mask' },
   ];
@@ -33,8 +31,6 @@ export class RegisterRecipeComponent implements OnInit{
       rotate: [0, [Validators.min(0), Validators.max(1)]],
       randomBrightnessContrast: [0, [Validators.min(0), Validators.max(1)]],
       advancedBlur: [0, [Validators.min(0), Validators.max(1)]],
-      randomBrightness: [0, [Validators.min(0), Validators.max(1)]],
-      randomContrast: [0, [Validators.min(0), Validators.max(1)]],
       gaussNoise: [0, [Validators.min(0), Validators.max(1)]],
       unsharpMask: [0, [Validators.min(0), Validators.max(1)]]
     });

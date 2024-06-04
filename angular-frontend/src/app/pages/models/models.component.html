@@ -49,12 +49,24 @@
     <div>
       <label for="dataset">Dataset:</label>
       <select id="dataset" formControlName="dataset" required>
-        <option *ngFor="let dataset of datasets" [value]="dataset">{{ dataset }}</option>
+        <option *ngFor="let dataset of datasets" [value]="dataset.dataset_name">{{ dataset.dataset_name }}</option>
       </select>
       <div *ngIf="trainModelForm.get('dataset')?.invalid && trainModelForm.get('dataset')?.touched" class="error-message">
         Dataset is required.
       </div>
     </div>
+    <div *ngIf="trainModelForm.get('dataset')?.value">
+    <p>Set the number of desired augmentations for each class:</p>
+    <div formArrayName="numAugmentations" class="augmentation-container">
+      <div *ngFor="let aug of numAugmentations.controls; let i = index" [formGroupName]="i" class="augmentation-item">
+        <label>{{ aug.get('className')?.value }}:</label>
+        <input type="number" formControlName="num" required min="2" max="10" />
+        <div *ngIf="aug.get('num')?.invalid && aug.get('num')?.touched" class="error-message">
+          Number of augmentations must be between 2 and 10.
+        </div>
+      </div>
+    </div>
+  </div>
     <div>
       <label for="trainSplit">Training Split:</label>
       <input id="trainSplit" type="number" formControlName="trainSplit" required min="0" max="1" step="0.01" />
@@ -79,7 +91,7 @@
     <div>
       <label for="augmentationRecipe">Augmentation Recipe:</label>
       <select id="augmentationRecipe" formControlName="augmentationRecipe" required>
-        <option *ngFor="let recipe of augmentationRecipes" [value]="recipe">{{ recipe }}</option>
+        <option *ngFor="let recipe of augmentationRecipes" [value]="recipe.recipeName">{{ recipe.recipeName }}</option>
       </select>
       <div *ngIf="trainModelForm.get('augmentationRecipe')?.invalid && trainModelForm.get('augmentationRecipe')?.touched" class="error-message">
         Augmentation recipe is required.
