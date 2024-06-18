@@ -56,17 +56,17 @@
       </div>
     </div>
     <div *ngIf="trainModelForm.get('dataset')?.value">
-    <p>Set the number of desired augmentations for each class:</p>
-    <div formArrayName="numAugmentations" class="augmentation-container">
-      <div *ngFor="let aug of numAugmentations.controls; let i = index" [formGroupName]="i" class="augmentation-item">
-        <label>{{ aug.get('className')?.value }}:</label>
-        <input type="number" formControlName="num" required min="1" max="10" />
-        <div *ngIf="aug.get('num')?.invalid && aug.get('num')?.touched" class="error-message">
-          Number of augmentations must be between 1 and 10.
+      <p>Set the number of desired augmentations for each class:</p>
+      <div formArrayName="numAugmentations" class="augmentation-container">
+        <div *ngFor="let aug of numAugmentations.controls; let i = index" [formGroupName]="i" class="augmentation-item">
+          <label>{{ aug.get('className')?.value }}:</label>
+          <input type="number" formControlName="num" required min="1" max="10" />
+          <div *ngIf="aug.get('num')?.invalid && aug.get('num')?.touched" class="error-message">
+            Number of augmentations must be between 1 and 10.
+          </div>
         </div>
       </div>
     </div>
-  </div>
     <div>
       <label for="trainSplit">Training Split:</label>
       <input id="trainSplit" type="number" formControlName="trainSplit" required min="0" max="1" step="0.01" />
@@ -96,6 +96,14 @@
       <div *ngIf="trainModelForm.get('augmentationRecipe')?.invalid && trainModelForm.get('augmentationRecipe')?.touched" class="error-message">
         Augmentation recipe is required.
       </div>
+    </div>
+    <div>
+      <label for="augmentationSeed">Augmentation Seed (Optional):</label>
+      <input id="augmentationSeed" type="number" formControlName="augmentationSeed" min="0" />
+    </div>
+    <div>
+      <label for="trainingSeed">Training Seed (Optional):</label>
+      <input id="trainingSeed" type="number" formControlName="trainingSeed" min="0" />
     </div>
     <button type="submit" [disabled]="trainModelForm.invalid">Submit</button>
   </form>

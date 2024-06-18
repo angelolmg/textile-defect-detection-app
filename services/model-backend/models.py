@@ -1,4 +1,4 @@
-import os, uuid
+import os, uuid, json
 import requests
 import zipfile
 import shutil
@@ -12,7 +12,6 @@ from mlflow import MlflowClient
 import random
 import numpy as np
 import torch
-from mlflow_utils import create_mlflow_experiment, get_mlflow_experiment
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -37,20 +36,27 @@ training_status = {
     'progress': None
 }
 
-def set_seed(seed=42):
+def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def train_yolo_model(data, zip_path):
+def generate_random_seed():
+    return random.randint(0, 2**32 - 1)
+
+def train_yolo_model(data, zip_path, dataset_info):
     training_status['is_training'] = True
     training_status['progress'] = 'Starting training...'
     client = MlflowClient()
     
     try:
-        set_seed(42)  # Set the seed for reproducibility
+        training_seed = data['trainingSeed']
+        if training_seed == None:
+            training_seed = generate_random_seed()
+
+        set_seed(training_seed)  # Set the seed for reproducibility
 
         model_name = data['modelName']
         model_architecture = data['modelArchitecture']
@@ -69,17 +75,27 @@ def train_yolo_model(data, zip_path):
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(model_folder)
         
-        # Start MLflow run
+        # Log run params
         mlflow.log_param("model_name", model_name)
         mlflow.log_param("model_architecture", model_architecture)
         mlflow.log_param("epochs", epochs)
-        mlflow.log_param("seed", 42)
+        mlflow.log_param("training_seed", training_seed)
         mlflow.log_param("dataset", dataset)
         mlflow.log_param("train_split", train_split)
         mlflow.log_param("val_split", val_split)
         mlflow.log_param("test_split", test_split)
         mlflow.log_param("augmentation_recipe", augmentation_recipe)
         mlflow.log_param("num_augmentations", num_augmentations)
+        
+        # Log dataset information
+        mlflow.log_param("total_patches", dataset_info['total_patches'])
+        mlflow.log_param("patch_size", dataset_info['patch_size'])
+        mlflow.log_param("class_names", dataset_info['class_names'])
+
+        # Log model tags
+        mlflow.set_tag('model.type', 'yolov8')
+        mlflow.set_tag('model.size', 'small')
+        mlflow.set_tag('patch.size', dataset_info['patch_size'])
 
         # Load the model
         model = YOLO(model_architecture)
@@ -87,12 +103,15 @@ def train_yolo_model(data, zip_path):
         # Train the model
         experiment_name = "YOLOv8 Experiments"
         run_name = str(uuid.uuid4())
-        model.train(data=model_folder, epochs=epochs, imgsz=64, seed=42, name=run_name, project=experiment_name)
+        model.train(data=model_folder, epochs=epochs, imgsz=64, seed=training_seed, name=run_name, project=experiment_name)
+        metrics = model.val()
 
         experiment = client.get_experiment_by_name(experiment_name)
         myrun = client.search_runs(experiment.experiment_id, filter_string=f"params.name = '{run_name}'", max_results=1)[0]
         with mlflow.start_run(run_id=myrun.info.run_id):
             mlflow.log_metric("training_status", 1)
+            mlflow.log_metric("speed.preprocess-ms", metrics.speed['preprocess'])
+            mlflow.log_metric("speed.inference-ms", metrics.speed['inference'])
 
         training_status['progress'] = 'Training completed successfully.'
 
@@ -121,6 +140,13 @@ def train_yolo_model(data, zip_path):
 def train_model():
     data = request.json
 
+    # Generate a random seed for augmentation if not provided
+    augmentation_seed = data['augmentationSeed']
+    if augmentation_seed == None:
+        augmentation_seed = generate_random_seed()
+
+    mlflow.log_param("augmentation_seed", augmentation_seed)
+
     # Create object for dataset and augmentation details
     augmentation_data = {
         'dataset': data['dataset'],
@@ -128,7 +154,8 @@ def train_model():
         'valSplit': data['valSplit'],
         'testSplit': data['testSplit'],
         'augmentationRecipe': data['augmentationRecipe'],
-        'numAugmentations': data['numAugmentations']
+        'numAugmentations': data['numAugmentations'],
+        'augmentationSeed': augmentation_seed
     }
 
     # Make request to endpoint for dataset augmentation and zipping
@@ -143,9 +170,12 @@ def train_model():
         # Save the received zip file
         with open(zip_path, 'wb') as f:
             f.write(response.content)
+
+        # Extract dataset information from response headers
+        dataset_info = json.loads(response.headers['X-Dataset-Info'])
         
         # Start training in a new thread
-        threading.Thread(target=train_yolo_model, args=(data, zip_path)).start()
+        threading.Thread(target=train_yolo_model, args=(data, zip_path, dataset_info)).start()
 
         return jsonify({'message': 'Training started and augmented dataset saved.'}), 200
     else:

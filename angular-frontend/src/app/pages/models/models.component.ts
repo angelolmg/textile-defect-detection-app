@@ -42,7 +42,9 @@ export class ModelsComponent implements OnInit {
       valSplit: [0.1, [Validators.required, Validators.min(0), Validators.max(1)]],
       testSplit: [0.1, [Validators.required, Validators.min(0), Validators.max(1)]],
       augmentationRecipe: ['', Validators.required],
-      numAugmentations: this.fb.array([])
+      numAugmentations: this.fb.array([]),
+      augmentationSeed: [null],
+      trainingSeed: [null]
     });
 
     this.trainModelForm.get('dataset')?.valueChanges.subscribe(datasetName => {
@@ -54,13 +56,11 @@ export class ModelsComponent implements OnInit {
     this.datasetsService.getDatasets().subscribe(datasets => {
       this.datasets = datasets;
       console.log('Datasets:', this.datasets);
-
     });
 
     this.datasetsService.getAugmentationRecipes().subscribe(recipes => {
       this.augmentationRecipes = recipes;
       console.log('Augmentation Recipes:', this.augmentationRecipes);
-
     });
   }
 
@@ -97,7 +97,6 @@ export class ModelsComponent implements OnInit {
 
       console.log('Training model with values:', trainingTemplate);
       this.modelsService.trainModel(trainingTemplate).subscribe((response) => {
-        // this.trainModelForm.reset();
         alert(response.message);
       });
     } else {

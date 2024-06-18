@@ -314,8 +314,14 @@ def augment_dataset():
     test_split = data['testSplit']
     augmentation_recipe_name = data['augmentationRecipe']
     num_augmentations = data['numAugmentations']
+    augmentation_seed = data['augmentationSeed']
 
-    random.seed(42)
+    random.seed(augmentation_seed)  # Set seed for augmentation reproducibility
+
+    # Retrieve the dataset details from the database
+    dataset = Dataset.query.filter_by(dataset_name=dataset_name).first()
+    if not dataset:
+        return jsonify({'error': 'Dataset not found'}), 404
 
     # Retrieve the augmentation recipe from the database
     augmentation_recipe = AugmentationRecipe.query.filter_by(recipe_name=augmentation_recipe_name).first()
@@ -357,7 +363,17 @@ def augment_dataset():
     
     # Set the Content-Disposition header to make the browser prompt the user to download the file with the specified name
     response.headers['Content-Disposition'] = f'attachment; filename={os.path.basename(zip_filename)}'
-    
+
+    # Include dataset information in the response
+    dataset_info = {
+        'dataset_name': dataset.dataset_name,
+        'total_patches': dataset.total_patches,
+        'patch_size': dataset.patch_size,
+        'class_names': dataset.class_names
+    }
+
+    response.headers['X-Dataset-Info'] = json.dumps(dataset_info)
+
     return response
 
 if __name__ == '__main__':
