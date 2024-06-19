@@ -19,6 +19,7 @@ interface TrainingTemplate {
 })
 export class ModelsService {
   private apiUrl = 'http://localhost:8090/api/models';
+  private mlflowUrl = 'http://localhost:8090/api/mlflow/models';
 
   constructor(private http: HttpClient) {}
 
@@ -28,5 +29,13 @@ export class ModelsService {
 
   trainModel(model: TrainingTemplate): Observable<any> {
     return this.http.post<TrainingTemplate>(this.apiUrl + '/train', model);
+  }
+
+  getRegisteredModels(): Observable<any> {
+    return this.http.get<any>(this.mlflowUrl);
+  }
+
+  getModelVersions(modelName: string): Observable<any> {
+    return this.http.get<any>(`${this.mlflowUrl}?modelName=${modelName}`);
   }
 }

@@ -21,11 +21,7 @@ interface Model {
   styleUrls: ['./models.component.scss']
 })
 export class ModelsComponent implements OnInit {
-  models = [
-    { name: 'Model A', accuracy: '92%', dataset: 'Dataset 1', description: 'This is a description for Model A.' },
-    { name: 'Model B', accuracy: '89%', dataset: 'Dataset 2', description: 'This is a description for Model B.' }
-  ];
-
+  models: any[] = [];
   modelArchitectures = ['yolov8s-cls.pt', 'Architecture 2', 'Architecture 3'];
   datasets: any[] = [];
   augmentationRecipes: any[] = [];
@@ -62,6 +58,31 @@ export class ModelsComponent implements OnInit {
       this.augmentationRecipes = recipes;
       console.log('Augmentation Recipes:', this.augmentationRecipes);
     });
+
+    this.getModelVersions('test01');
+  }
+
+  getRegisteredModels(): void {
+    this.modelsService.getRegisteredModels().subscribe(
+      data => {
+        console.log('Registered Models:', data);
+      },
+      error => {
+        console.error('Error fetching registered models:', error);
+      }
+    );
+  }
+
+  getModelVersions(modelName: string): void {
+    this.modelsService.getModelVersions(modelName).subscribe(
+      data => {
+        this.models = data;
+        console.log(`Model Versions for ${modelName}:`, this.models);
+      },
+      error => {
+        console.error(`Error fetching model versions for ${modelName}:`, error);
+      }
+    );
   }
 
   get numAugmentations() {

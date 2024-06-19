@@ -6,15 +6,19 @@
         <th>Name</th>
         <th>Accuracy</th>
         <th>Training Dataset</th>
+        <th>Augmentation Recipe</th>
         <th>Description</th>
+        <th>Model Architecture</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let model of models">
-        <td>{{ model.name }}</td>
-        <td>{{ model.accuracy }}</td>
+        <td>{{ model.model_name }}</td>
+        <td>{{ model.accuracy_top1 | percent:'1.2-2' }}</td>
         <td>{{ model.dataset }}</td>
+        <td>{{ model.augmentation_recipe }}</td>
         <td>{{ model.description }}</td>
+        <td>{{ model.model_architecture }}</td>
       </tr>
     </tbody>
   </table>

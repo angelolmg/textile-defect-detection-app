@@ -1,4 +1,5 @@
 import os, uuid, json
+import onnx
 import requests
 import zipfile
 import shutil
@@ -108,10 +109,17 @@ def train_yolo_model(data, zip_path, dataset_info):
 
         experiment = client.get_experiment_by_name(experiment_name)
         myrun = client.search_runs(experiment.experiment_id, filter_string=f"params.name = '{run_name}'", max_results=1)[0]
-        with mlflow.start_run(run_id=myrun.info.run_id):
+        with mlflow.start_run(run_id=myrun.info.run_id) as run:
             mlflow.log_metric("training_status", 1)
             mlflow.log_metric("speed.preprocess-ms", metrics.speed['preprocess'])
             mlflow.log_metric("speed.inference-ms", metrics.speed['inference'])
+
+            # Export to ONNX format and log the model
+            # Batch specifies export model batch inference size or the max number of images the exported model will process concurrently in predict mode.
+            model.export(format="onnx", batch=999)
+            model_onnx_path = BASE_DIR + "/" + experiment_name + "/" + str(run_name) + "/weights/best.onnx"
+            onnx_model = onnx.load_model(model_onnx_path)
+            mlflow.onnx.log_model(onnx_model, "model", registered_model_name="test01")
 
         training_status['progress'] = 'Training completed successfully.'
 
@@ -184,6 +192,42 @@ def train_model():
 @app.route('/api/models/train/status', methods=['GET'])
 def get_training_status():
     return jsonify(training_status), 200
+
+@app.route('/api/mlflow/models', methods=['GET'])
+def list_registered_models():
+    client = MlflowClient()
+    model_name = request.args.get('modelName')
+
+    if model_name:
+        # Fetch specific model versions
+        model_versions = []
+        for mv in client.search_model_versions(f"name='{model_name}'"):
+            mv_dict = dict(mv)
+            
+            # Fetch the corresponding run
+            run_id = mv.run_id
+            run_info = client.get_run(run_id).info
+            run_data = client.get_run(run_id).data
+
+            # Extract additional info
+            mv_dict['model_name'] = run_data.params.get('model_name', 'N/A')
+            mv_dict['dataset'] = run_data.params.get('dataset', 'N/A')
+            mv_dict['accuracy_top1'] = run_data.metrics.get('metrics/accuracy_top1', 'N/A')
+            mv_dict['description'] = mv.description if mv.description else 'No description available'
+            mv_dict['model_architecture'] = run_data.params.get('model_architecture', 'N/A')
+            mv_dict['augmentation_recipe'] = run_data.params.get('augmentation_recipe', 'N/A')
+            
+            model_versions.append(mv_dict)
+        return jsonify(model_versions), 200
+    else:
+        # Fetch all registered models
+        registered_models = []
+        for rm in client.search_registered_models():
+            latest_versions = rm.latest_versions
+            rm.latest_versions = [dict(mv) for mv in latest_versions]
+            registered_models.append(dict(rm))
+        return jsonify(registered_models), 200
+
 
 if __name__ == '__main__':
 
