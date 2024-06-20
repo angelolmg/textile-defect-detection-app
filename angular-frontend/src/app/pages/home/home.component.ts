@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
 import { Subscription, catchError, interval, of, switchMap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { ModelsService } from 'src/app/shared/services/models.service';
 
 interface ClassColors {
   [key: string]: string;
@@ -19,16 +21,16 @@ class SummaryData {
   templateUrl: 'home.component.html',
   styleUrls: ['./home.component.scss'],
 })
-export class HomeComponent {
-  constructor(private http: HttpClient) {}
-
+export class HomeComponent implements OnInit, OnDestroy {
+  form: FormGroup;
   summaryData: SummaryData = new SummaryData();
-
   currentImageSource = '';
   imageChangeSubscription: Subscription = new Subscription();
   loading: boolean = false;
   rollmaps: any[] = [];
   currentRollmapIndex: number = 0;
+  models: string[] = [];
+  intervalDelayMs: number = 10000;
 
   classes: ClassColors = {
     'hole': 'red',
@@ -37,21 +39,49 @@ export class HomeComponent {
     'thread error': 'brown',
   };
 
-  // Get the keys of the classes object
+  constructor(
+    private http: HttpClient,
+    private modelsService: ModelsService,
+    private fb: FormBuilder
+  ) {
+    // Initialize the form with form controls
+    this.form = this.fb.group({
+      file: [null],
+      model: [''],
+    });
+  }
+
+  ngOnInit() {
+    this.update_image();
+    this.fetchModelNames();
+    // Subscribe to model changes
+    this.form.get('model')?.valueChanges.subscribe((value) => {
+      console.log('Selected model:', value);
+    });
+  }
+
   getClassNames(): string[] {
     return Object.keys(this.classes);
   }
 
   get session_id(): string {
-    return this.summaryData.session_id ? this.summaryData.session_id : ''
+    return this.summaryData.session_id ? this.summaryData.session_id : '';
   }
 
-  ngOnInit() {
-    this.update_image();
+  fetchModelNames() {
+    this.modelsService.getModelVersions('test01').subscribe(
+      (models: any[]) => {
+        // Extract model_name from each object and assign to this.models
+        this.models = models.map(model => model.model_name);
+      },
+      (error: any) => {
+        console.error('Error fetching model names:', error);
+      }
+    );
   }
 
   update_image() {
-    this.imageChangeSubscription = interval(1000)
+    this.imageChangeSubscription = interval(this.intervalDelayMs)
       .pipe(
         switchMap(() => {
           return this.http.get<any>('http://localhost:8000/get-frame').pipe(
@@ -74,7 +104,7 @@ export class HomeComponent {
             console.log(response);
 
             // Display the received image on the img tag
-            if(response.frame_data)
+            if (response.frame_data)
               this.currentImageSource =
                 'data:image/jpeg;charset=utf-8;base64,' + response.frame_data;
 
@@ -95,32 +125,32 @@ export class HomeComponent {
     }
   }
 
-  selectedFile!: File;
-  selectedFileName: string = '';
-
   onFileSelected(event: any): void {
-    this.selectedFile = event.target.files[0];
-
-    if (this.selectedFile) {
-      this.selectedFileName = this.selectedFile.name;
-    } else {
-      this.selectedFileName = '';
-    }
+    const file = event.target.files[0];
+    this.form.patchValue({
+      file: file,
+    });
+    this.form.get('file')?.updateValueAndValidity();
   }
 
-  onSubmit(event: any): void {
-    event.preventDefault(); // Prevent the default form submission behavior
-    this.loading = true;
+  onSubmit(): void {
+    if (this.form.invalid) {
+      return;
+    }
 
     const formData = new FormData();
-    formData.append('file', this.selectedFile);
+    formData.append('file', this.form.get('file')?.value);
+    formData.append('model', this.form.get('model')?.value);
 
+    this.loading = true;
     this.http.post('http://localhost:8000/upload', formData).subscribe(
       (response) => {
         console.log('File uploaded successfully:', response);
+        this.loading = false;
       },
       (error) => {
         console.error('Error uploading file:', error);
+        this.loading = false;
       }
     );
   }

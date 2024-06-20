@@ -13,6 +13,7 @@ import { PatchingComponent } from './pages/patching/patching.component';
 import { UnsavedChangesGuard } from './unsaved-changes';
 import { RegisterRecipeComponent } from './pages/register-recipe/register-recipe.component';
 import { ModelsComponent } from './pages/models/models.component';
+import { ReactiveFormsModule } from '@angular/forms';
 
 const routes: Routes = [
   {
@@ -83,7 +84,13 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes, { useHash: true }), DxDataGridModule, DxFormModule, CommonModule],
+  imports: [RouterModule.forRoot(routes, { useHash: true }),
+            DxDataGridModule,
+            DxFormModule,
+            CommonModule,
+            ReactiveFormsModule
+
+          ],
   providers: [AuthGuardService],
   exports: [RouterModule],
   declarations: [

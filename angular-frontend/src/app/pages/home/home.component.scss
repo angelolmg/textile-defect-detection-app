@@ -197,6 +197,21 @@
 .main-panel-header {
   display: flex;
   justify-content: space-between;
+  flex-direction: column;
+}
+
+.main-panel-top-wrapper {
+  display: flex;
+  justify-content: space-between;
+}
+
+.main-panel-dropdown {
+  margin-top: 1rem;
+  span {
+    font-size: 1rem;
+    margin: 0.5rem;
+    color: #515151;
+  }
 }
 
 ////
