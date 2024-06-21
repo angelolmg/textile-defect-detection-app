@@ -50,12 +50,13 @@ six==1.16.0
 SQLAlchemy==2.0.30
 sympy==1.12
 thop==0.1.1.post2209072238
-torch==2.3.0
-torchvision==0.18.0
+torch==2.3.1
+torchvision==0.18.1
 tqdm==4.66.4
-triton==2.3.0
+triton==2.3.1
 typing_extensions==4.11.0
 tzdata==2024.1
-ultralytics==8.0.230
+ultralytics==8.2.38
+ultralytics-thop==2.0.0
 urllib3==2.2.1
 Werkzeug==3.0.3

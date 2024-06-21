@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Kill processes at specified ports
-kill_ports=(4200 8080 8090 5005)
+kill_ports=(4200 8070 8080 8090 5005)
 for port in "${kill_ports[@]}"; do
     pid=$(lsof -ti tcp:"$port")
     if [ -n "$pid" ]; then
@@ -19,6 +19,9 @@ open_tab() {
 
 # Navigate to angular-frontend and run ng serve
 open_tab "cd angular-frontend && ng serve"
+
+# Navigate to services/main-backend, activate virtual environment, and run server.py
+open_tab "cd services/main-backend && source bin/activate && python server.py"
 
 # Navigate to services/data-backend, activate virtual environment, and run database.py
 open_tab "cd services/data-backend && source bin/activate && python database.py"

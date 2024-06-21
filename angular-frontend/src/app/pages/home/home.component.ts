@@ -84,7 +84,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.imageChangeSubscription = interval(this.intervalDelayMs)
       .pipe(
         switchMap(() => {
-          return this.http.get<any>('http://localhost:8000/get-frame').pipe(
+          return this.http.get<any>('http://localhost:8070/get-frame').pipe(
             catchError((error: HttpErrorResponse) => {
               if (error.status === 404) {
                 console.log('No images available');
@@ -143,7 +143,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     formData.append('model', this.form.get('model')?.value);
 
     this.loading = true;
-    this.http.post('http://localhost:8000/upload', formData).subscribe(
+    this.http.post('http://localhost:8070/upload', formData).subscribe(
       (response) => {
         console.log('File uploaded successfully:', response);
         this.loading = false;
@@ -179,7 +179,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   clearSessions() {
     this.http
-      .get<any>('http://localhost:8000/reset-sessions')
+      .get<any>('http://localhost:8070/reset-sessions')
       .subscribe((response) => {
         console.log(response.message);
       });

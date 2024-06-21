@@ -1,5 +1,5 @@
-albucore==0.0.7
-albumentations==1.4.8
+albucore==0.0.12
+albumentations==1.4.10
 annotated-types==0.7.0
 blinker==1.8.2
 click==8.1.7

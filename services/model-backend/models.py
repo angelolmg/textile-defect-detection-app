@@ -4,7 +4,7 @@ import requests
 import zipfile
 import shutil
 from flask_cors import CORS
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from ultralytics import YOLO
 import threading
@@ -119,7 +119,8 @@ def train_yolo_model(data, zip_path, dataset_info):
             model.export(format="onnx", batch=999)
             model_onnx_path = BASE_DIR + "/" + experiment_name + "/" + str(run_name) + "/weights/best.onnx"
             onnx_model = onnx.load_model(model_onnx_path)
-            mlflow.onnx.log_model(onnx_model, "model", registered_model_name="test01")
+            model_info = mlflow.onnx.log_model(onnx_model, "model", registered_model_name="test01")
+            client.set_registered_model_alias("test01", model_name, model_info.registered_model_version)
 
         training_status['progress'] = 'Training completed successfully.'
 
@@ -228,6 +229,29 @@ def list_registered_models():
             registered_models.append(dict(rm))
         return jsonify(registered_models), 200
 
+@app.route('/fetch_model', methods=['GET'])
+def fetch_model():
+    """
+    Fetch the registered model from the MLflow registry using the alias provided as a query parameter
+    and return the model weights file.
+    """
+    model_name = request.args.get('model')
+    if not model_name:
+        return jsonify({'error': 'Model name not provided'}), 400
+
+    try:
+        client = mlflow.tracking.MlflowClient()
+        model_version = client.get_model_version_by_alias("test01", model_name)
+        run_id = model_version.run_id
+        artifacts_uri = client.get_run(run_id).info.artifact_uri
+        model_file_path = os.path.join(artifacts_uri, "weights", "best.pt")
+        
+        if os.path.exists(model_file_path):
+            return send_file(model_file_path, as_attachment=True)
+        else:
+            return jsonify({'error': 'Model file not found'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch model: {str(e)}'}), 500
 
 if __name__ == '__main__':
 

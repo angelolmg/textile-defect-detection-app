@@ -5,6 +5,8 @@ import cv2
 import shutil
 from ultralytics import YOLO
 import base64
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
@@ -96,15 +98,48 @@ def upload_images():
         'class_names': class_names_array
     }), 201
 
+def fetch_model_file(model_name: str):
+    """
+    Fetch the model file from the MLflow service.
+
+    Args:
+        model_name (str): The alias name of the model.
+
+    Returns:
+        str: The path to the downloaded model file.
+    """
+    MLFLOW_SERVER_URL = "http://localhost:8090"
+    response = requests.get(f"{MLFLOW_SERVER_URL}/fetch_model", params={'model': model_name})
+    if response.status_code == 200:
+        model_file_path = os.path.join(BASE_DIR, 'models', f"{model_name}.pt")
+        with open(model_file_path, 'wb') as f:
+            f.write(response.content)
+        return model_file_path
+    else:
+        raise Exception(f"Failed to fetch model: {response.text}")
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
+    if 'model' not in request.form:
+        return jsonify({'error': 'No model specified'}), 400
+
+    model_name = request.form['model']
+
+    try:
+        global model
+        model_file_path = fetch_model_file(model_name)
+        print(model_file_path)
+        model = YOLO(model_file_path)
+        print(model)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
     uploaded_file = request.files['file']
     # Check if the file is a video file (modify the condition as needed)
     if uploaded_file.filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-
         # Construct folder path based on current timestamp
         timestamp = time.strftime("%Y%m%d%H%M%S")
         folder_path = os.path.join(BASE_DIR, 'working', timestamp)
@@ -308,6 +343,8 @@ ready_folder = None
 defects_data_json_path = None
 rollmaps_folder = None
 
+model = None
+
 defect_summary_data = { 
         'Elapsed time (s)': 0,
         'Captures': 0,
@@ -447,146 +484,157 @@ def get_neighbors_coordinates(x, y, img_width, img_height, cell_size):
     return neighbors
 
 def process_frames_in_frames_folder():
-    global model, defect_summary_data
+    global defect_summary_data
     while True:
+        # Wait for 5 seconds before checking
+        time.sleep(5)
+
         print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Searching for frames...")
 
-        if frames_folder and os.path.exists(frames_folder):
-            frame_files = [f for f in os.listdir(frames_folder) if f.startswith('frame_') and f.endswith('.jpg')]
-            frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
+        if not model:
+            print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Error: No model loaded yet. Skipping...")
+            continue
 
-            if frame_files:
-                print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Found frames!")
-                frame_to_process = frame_files[0]
-                frame_path = os.path.join(frames_folder, frame_to_process)
-                destination_path = os.path.join(ready_folder, frame_to_process)
+        if not frames_folder or not os.path.exists(frames_folder):
+            print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Error: No frames folder found. Skipping...")
+            continue
 
-                # Read the frame, grayscale, resize frame
-                input_image = cv2.imread(frame_path)
-                gray_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
-                input_image = cv2.merge((gray_image, gray_image, gray_image))
-                input_image = cv2.resize(input_image, (768, 512))
+        frame_files = [f for f in os.listdir(frames_folder) if f.startswith('frame_') and f.endswith('.jpg')]
+        frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
 
-                # Break the image into cells
-                cell_size = 64
-                img_height, img_width, _ = input_image.shape
-                images = []
-                image_coordinates = []
-                for y in range(0, img_height, cell_size):
-                    for x in range(0, img_width, cell_size):
-                        image = input_image[y:y+cell_size, x:x+cell_size]
-                        images.append(image)
-                        image_coordinates.append((x, y, x+cell_size, y+cell_size))
+        if not frame_files:
+            print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Error: No frame files found. Skipping...")
+            global processing
+            processing = False
+            continue
 
-                print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Number of patches: {len(images)}")
+        print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Found frames!")
 
-                # Defect inference
-                conf1 = 0.999
-                results = model.predict(source=images)
+        frame_to_process = frame_files[0]
+        frame_path = os.path.join(frames_folder, frame_to_process)
+        destination_path = os.path.join(ready_folder, frame_to_process)
 
-                # Filter defects and collect neighbors cells (8 cells around central cell)
-                # We perform a second detection on neighboring cells for the main class
-                neighbors_dict = {}  # Dictionary to store neighbors for each class
-                marked_images = []
-                top1 = []
-                confs = []
-                marked_coordinates = []
-                for i in range(len(images)):
-                    if results[i].probs.top1 != 0 and results[i].probs.top1conf > conf1:
-                        top1.append(int(results[i].probs.top1))
-                        confs.append(results[i].probs.top1conf)
-                        marked_images.append(images[i])
-                        marked_coordinates.append(image_coordinates[i])
+        # Read the frame, grayscale, resize frame
+        input_image = cv2.imread(frame_path)
+        gray_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+        input_image = cv2.merge((gray_image, gray_image, gray_image))
+        input_image = cv2.resize(input_image, (768, 512))
 
-                        # Calculate neighbor cells
-                        # Create/update dictionary based on class
-                        neighbors = get_neighbors_coordinates(*image_coordinates[i][:2], img_height, img_width, cell_size)
-                        class_id = results[i].probs.top1
+        # Break the image into cells
+        cell_size = 64
+        img_height, img_width, _ = input_image.shape
+        images = []
+        image_coordinates = []
+        for y in range(0, img_height, cell_size):
+            for x in range(0, img_width, cell_size):
+                image = input_image[y:y+cell_size, x:x+cell_size]
+                images.append(image)
+                image_coordinates.append((x, y, x+cell_size, y+cell_size))
 
-                        if class_id not in neighbors_dict:
-                            neighbors_dict[class_id] = set()
-                        neighbors_dict[class_id].update(neighbors)
+        print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Number of patches: {len(images)}")
 
-                        # Remove marked images since they are not neighboring cells
-                        neighbors_dict[class_id] = neighbors_dict[class_id] - set(marked_coordinates)
+        # Defect inference
+        conf1 = 0.2
+        results = model.predict(source=images)
 
-                # Perform second prediction for neighbors
-                # Second prediction should have a smaller threshold
-                conf2 = 0.5
+        # Filter defects and collect neighbors cells (8 cells around central cell)
+        # We perform a second detection on neighboring cells for the main class
+        neighbors_dict = {}  # Dictionary to store neighbors for each class
+        marked_images = []
+        top1 = []
+        confs = []
+        marked_coordinates = []
+        for i in range(len(images)):
+            if results[i].probs.top1 != 0 and results[i].probs.top1conf > conf1:
+                top1.append(int(results[i].probs.top1))
+                confs.append(results[i].probs.top1conf)
+                marked_images.append(images[i])
+                marked_coordinates.append(image_coordinates[i])
 
-                for class_id, neighbors in neighbors_dict.items():
-                    neighbor_images = []
-                    ncoords = []
+                # Calculate neighbor cells
+                # Create/update dictionary based on class
+                neighbors = get_neighbors_coordinates(*image_coordinates[i][:2], img_height, img_width, cell_size)
+                class_id = results[i].probs.top1
 
-                    for neighbor_coords in neighbors:
-                        for i, coord in enumerate(image_coordinates):
-                            if neighbor_coords == coord:
-                                neighbor_images.append(images[i])
-                                ncoords.append(image_coordinates[i])
+                if class_id not in neighbors_dict:
+                    neighbors_dict[class_id] = set()
+                neighbors_dict[class_id].update(neighbors)
 
-                    if neighbor_images:
-                        neighbor_results = model.predict(source=neighbor_images)
-                        for i in range(len(neighbor_images)):
-                            if neighbor_results[i].probs.top1 == class_id and \
-                                neighbor_results[i].probs.top1conf > conf2:
-                                
-                                top1.append(class_id)
-                                confs.append(neighbor_results[i].probs.top1conf)
-                                marked_images.append(neighbor_images[i])
-                                marked_coordinates.append(ncoords[i])
+                # Remove marked images since they are not neighboring cells
+                neighbors_dict[class_id] = neighbors_dict[class_id] - set(marked_coordinates)
 
-                print(GREEN + "[process_image]" + RESET +
-                      f' Number of patches with defect: {len(marked_images)}')
-                print(GREEN + "[process_image]" + RESET +
-                      f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
-                defect_summary_data['Defect Count'] += len(marked_images)
+        # Perform second prediction for neighbors
+        # Second prediction should have a smaller threshold
+        conf2 = 0.1
 
-                # Save defect images to dictionary
-                classes = ['good', 'hole', 'objects', 'oil spot', 'thread error']
-                new_entries = []
-                for i in range(len(marked_images)):
-                    # Convert the image to a base64 string
-                    _, buffer = cv2.imencode('.jpg', marked_images[i])
-                    base64_image = base64.b64encode(buffer).decode('utf-8')
-                    index = int(frame_to_process.split('_')[1].split('.')[0])
-                    new_entries.append({'frame_pos': int(index/FRAME_SKIP),
-                                        'frame_index': index,
-                                        'camera': 'Cam_0',
-                                        'class': classes[top1[i]],
-                                        'confidence': float(confs[i]),
-                                        'pos_x': marked_coordinates[i][0],
-                                        'pos_y': marked_coordinates[i][1],
-                                        'time': int(time.time()),
-                                        'img_base64': base64_image})
+        for class_id, neighbors in neighbors_dict.items():
+            neighbor_images = []
+            ncoords = []
 
-                save_entries_to_json(defects_data_json_path, new_entries)
+            for neighbor_coords in neighbors:
+                for i, coord in enumerate(image_coordinates):
+                    if neighbor_coords == coord:
+                        neighbor_images.append(images[i])
+                        ncoords.append(image_coordinates[i])
 
-                # Color the input image using colored markings
-                color_mapping = {
-                    'good': (0, 255, 255),
-                    'hole': (0, 0, 255),
-                    'objects': (255, 0, 0),
-                    'oil spot': (0, 255, 0),
-                    'thread error': (42, 42, 165)
-                }
-                for i in range(len(marked_coordinates)):
-                    x1, y1, x2, y2 = marked_coordinates[i]
-                    cv2.rectangle(input_image, (x1, y1), (x2, y2), color_mapping[new_entries[i]['class']], 2)
+            if neighbor_images:
+                neighbor_results = model.predict(source=neighbor_images)
+                for i in range(len(neighbor_images)):
+                    if neighbor_results[i].probs.top1 == class_id and \
+                        neighbor_results[i].probs.top1conf > conf2:
+                        
+                        top1.append(class_id)
+                        confs.append(neighbor_results[i].probs.top1conf)
+                        marked_images.append(neighbor_images[i])
+                        marked_coordinates.append(ncoords[i])
 
-                # Save the colored image to the ready folder
-                cv2.imwrite(destination_path, input_image)
-                print(f"Moved {frame_to_process} to ready folder")
+        print(GREEN + "[process_image]" + RESET +
+                f' Number of patches with defect: {len(marked_images)}')
+        print(GREEN + "[process_image]" + RESET +
+                f' Ratio defect/good: {len(marked_images)/len(images)*100}%')
+        defect_summary_data['Defect Count'] += len(marked_images)
 
-                create_defect_scatter_plot()
+        # Save defect images to dictionary
+        classes = ['good', 'hole', 'objects', 'oil spot', 'thread error']
+        new_entries = []
 
-                # Remove the processed frame from the frames folder
-                os.remove(frame_path)
-            else:
-                global processing
-                processing = False
+        for i in range(len(marked_images)):
+            # Convert the image to a base64 string
+            _, buffer = cv2.imencode('.jpg', marked_images[i])
+            base64_image = base64.b64encode(buffer).decode('utf-8')
+            index = int(frame_to_process.split('_')[1].split('.')[0])
+            new_entries.append({'frame_pos': int(index/FRAME_SKIP),
+                                'frame_index': index,
+                                'camera': 'Cam_0',
+                                'class': classes[top1[i]],
+                                'confidence': float(confs[i]),
+                                'pos_x': marked_coordinates[i][0],
+                                'pos_y': marked_coordinates[i][1],
+                                'time': int(time.time()),
+                                'img_base64': base64_image})
 
-        # Wait for 5 seconds before checking again
-        time.sleep(5)
+        save_entries_to_json(defects_data_json_path, new_entries)
+
+        # Color the input image using colored markings
+        color_mapping = {
+            'good': (0, 255, 255),
+            'hole': (0, 0, 255),
+            'objects': (255, 0, 0),
+            'oil spot': (0, 255, 0),
+            'thread error': (42, 42, 165)
+        }
+        for i in range(len(marked_coordinates)):
+            x1, y1, x2, y2 = marked_coordinates[i]
+            cv2.rectangle(input_image, (x1, y1), (x2, y2), color_mapping[new_entries[i]['class']], 2)
+
+        # Save the colored image to the ready folder
+        cv2.imwrite(destination_path, input_image)
+        print(f"Moved {frame_to_process} to ready folder")
+
+        create_defect_scatter_plot()
+
+        # Remove the processed frame from the frames folder
+        os.remove(frame_path)
 
 def create_defect_scatter_plot():
     global defect_summary_data
@@ -604,8 +652,8 @@ def create_defect_scatter_plot():
     defect_class_color = []
 
     # Get number of last detected frame to calculate actual cam position
-    defect_summary_data['Position (m)'] = (
-        (df.iloc[-1]['frame_pos'] + 1) + 1) * CAM_FRAME_HEIGHT_CM / 100
+    # TODO: this bugs out if no defects are detected ever
+    defect_summary_data['Position (m)'] = ((df.iloc[-1]['frame_pos'] + 1) + 1) * CAM_FRAME_HEIGHT_CM / 100
 
     classes = {'hole': 'red', 'objects': 'blue',
                'oil spot': 'green', 'thread error': 'brown'}
@@ -659,22 +707,22 @@ def create_defect_scatter_plot():
 
     return plot_index
 
-# Start the thread
-active_session_thread = threading.Thread(target=check_active_session)
-active_session_thread.daemon = True
-active_session_thread.start()
-
-# Create and start the thread
-model_file = os.path.join(BASE_DIR, 'models', 'yolov8s-cls_tilda400_50ep', 'weights', 'best.pt')
-model = YOLO(model_file)
-process_frames_in_frames_folder_thread = threading.Thread(target=process_frames_in_frames_folder)
-process_frames_in_frames_folder_thread.daemon = True
-process_frames_in_frames_folder_thread.start()
-
-# Create and start the thread
-video_processing_thread = threading.Thread(target=break_video_into_frames)
-video_processing_thread.daemon = True
-video_processing_thread.start()
-
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True, port=8000)
+    # Start the thread
+    active_session_thread = threading.Thread(target=check_active_session)
+    active_session_thread.daemon = True
+    active_session_thread.start()
+
+    # Create and start the thread
+    process_frames_in_frames_folder_thread = threading.Thread(target=process_frames_in_frames_folder)
+    process_frames_in_frames_folder_thread.daemon = True
+    process_frames_in_frames_folder_thread.start()
+
+    # Create and start the thread
+    video_processing_thread = threading.Thread(target=break_video_into_frames)
+    video_processing_thread.daemon = True
+    video_processing_thread.start()
+
+    # Run the app
+    # For some reason if 'debug=True' the above threads run twice
+    app.run(debug=False, threaded=True, port=8070)

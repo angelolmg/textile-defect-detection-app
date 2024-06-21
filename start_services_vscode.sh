@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Kill processes at specified ports
-kill_ports=(4200 8080 8090 5005)
+kill_ports=(4200 8070 8080 8090 5005)
 for port in "${kill_ports[@]}"; do
     pid=$(lsof -ti tcp:"$port")
     if [ -n "$pid" ]; then
@@ -15,6 +15,12 @@ done
 # Navigate to angular-frontend and run ng serve
 cd angular-frontend || { echo "Directory angular-frontend not found"; exit 1; }
 ng serve &
+
+# Navigate back and then to services/main-backend, activate virtual environment, and run server.py
+cd - || exit
+cd services/main-backend || { echo "Directory services/data-backend not found"; exit 1; }
+source bin/activate
+python server.py &
 
 # Navigate back and then to services/data-backend, activate virtual environment, and run database.py
 cd - || exit
