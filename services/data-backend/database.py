@@ -61,18 +61,7 @@ with app.app_context():
                 advanced_blur=0.33,
                 gauss_noise=0.25,
                 unsharp_mask=0.1
-            ),
-            AugmentationRecipe(
-                recipe_name="Sample recipe 2",
-                horizontal_flip=0.4,
-                vertical_flip=0.4,
-                random_rotate90=0.4,
-                rotate=0.7,
-                random_brightness_contrast=0.4,
-                advanced_blur=0.3,
-                gauss_noise=0.2,
-                unsharp_mask=0.2
-            ),
+            )
         ]
         db.session.bulk_save_objects(sample_recipes)
         db.session.commit()

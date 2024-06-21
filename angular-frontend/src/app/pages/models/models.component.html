@@ -64,9 +64,9 @@
       <div formArrayName="numAugmentations" class="augmentation-container">
         <div *ngFor="let aug of numAugmentations.controls; let i = index" [formGroupName]="i" class="augmentation-item">
           <label>{{ aug.get('className')?.value }}:</label>
-          <input type="number" formControlName="num" required min="1" max="10" />
+          <input type="number" formControlName="num" required min="1" max="20" />
           <div *ngIf="aug.get('num')?.invalid && aug.get('num')?.touched" class="error-message">
-            Number of augmentations must be between 1 and 10.
+            Number of augmentations must be between 1 and 20.
           </div>
         </div>
       </div>

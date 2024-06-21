@@ -534,7 +534,7 @@ def process_frames_in_frames_folder():
         print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Number of patches: {len(images)}")
 
         # Defect inference
-        conf1 = 0.2
+        conf1 = 0.999
         results = model.predict(source=images)
 
         # Filter defects and collect neighbors cells (8 cells around central cell)
@@ -565,7 +565,7 @@ def process_frames_in_frames_folder():
 
         # Perform second prediction for neighbors
         # Second prediction should have a smaller threshold
-        conf2 = 0.1
+        conf2 = 0.5
 
         for class_id, neighbors in neighbors_dict.items():
             neighbor_images = []
@@ -598,6 +598,7 @@ def process_frames_in_frames_folder():
         classes = ['good', 'hole', 'objects', 'oil spot', 'thread error']
         new_entries = []
 
+        # TODO: Bugs out when theres no marked images. Breaks defect listing too
         for i in range(len(marked_images)):
             # Convert the image to a base64 string
             _, buffer = cv2.imencode('.jpg', marked_images[i])
@@ -652,8 +653,11 @@ def create_defect_scatter_plot():
     defect_class_color = []
 
     # Get number of last detected frame to calculate actual cam position
-    # TODO: this bugs out if no defects are detected ever
-    defect_summary_data['Position (m)'] = ((df.iloc[-1]['frame_pos'] + 1) + 1) * CAM_FRAME_HEIGHT_CM / 100
+    # TODO: this used to bug out if no defects were detected ever, just bandaid fixed it
+    if df.index.size > 0:
+        defect_summary_data['Position (m)'] = ((df.iloc[-1]['frame_pos'] + 1) + 1) * CAM_FRAME_HEIGHT_CM / 100
+    else: defect_summary_data['Position (m)'] = CAM_FRAME_HEIGHT_CM / 100
+
 
     classes = {'hole': 'red', 'objects': 'blue',
                'oil spot': 'green', 'thread error': 'brown'}

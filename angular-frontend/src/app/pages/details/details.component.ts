@@ -13,7 +13,7 @@ export class DetailsComponent {
 
   ngOnInit(): void {
     // Fetch defects data from the server
-    this.http.get<any>('http://localhost:8000/get-defects').subscribe(
+    this.http.get<any>('http://localhost:8070/get-defects').subscribe(
       (response) => {
         // Assuming the response contains defects data in an array
         this.defectsData = response.defects;

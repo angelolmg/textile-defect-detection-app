@@ -22,7 +22,7 @@ interface Model {
 })
 export class ModelsComponent implements OnInit {
   models: any[] = [];
-  modelArchitectures = ['yolov8s-cls.pt', 'Architecture 2', 'Architecture 3'];
+  modelArchitectures = ['yolov8s-cls.pt'];
   datasets: any[] = [];
   augmentationRecipes: any[] = [];
 
@@ -97,7 +97,7 @@ export class ModelsComponent implements OnInit {
       selectedDataset.class_names.split(',').forEach((className: string) => {
         this.numAugmentations.push(this.fb.group({
           className: [className],
-          num: ['', [Validators.required, Validators.min(1), Validators.max(10)]]
+          num: ['', [Validators.required, Validators.min(1), Validators.max(20)]]
         }));
       });
     }
