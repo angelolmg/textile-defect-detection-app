@@ -10,6 +10,7 @@ import random
 from flask_cors import CORS
 from flask import Flask, request, jsonify, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
+import matplotlib.pyplot as plt
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -271,20 +272,44 @@ def split_and_save_images(class_input_folder, class_output_folder, selected_imag
             new_image_path = os.path.join(class_output_folder, f"{os.path.splitext(filename)[0]}_{i+1}.png")
             Image.fromarray(augmented_image).save(new_image_path)
 
+def plot_class_distribution(input_folder, class_names):
+    class_image_counts = {class_name: len([filename for filename in os.listdir(os.path.join(input_folder, class_name)) if filename.endswith('.png')]) for class_name in class_names}
+    
+    classes = list(class_image_counts.keys())
+    counts = list(class_image_counts.values())
+    
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(classes, counts)
+    plt.xlabel('Class')
+    plt.ylabel('Number of Images')
+    plt.title('Initial Distribution of Images for Different Classes')
+    
+    for bar, count in zip(bars, counts):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), str(count), ha='center', va='bottom')
+    
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    histogram_path = os.path.join(input_folder, 'class_distribution_histogram.png')
+    plt.savefig(histogram_path)
+    plt.close()
+
 def create_and_split_folders(input_folder, output_folder, splits, num_augmentations, augmentations):
     train_split, val_split, test_split = splits
+    class_names = num_augmentations.keys()
+    
+    # Plot the initial distribution of images
+    plot_class_distribution(input_folder, class_names)
+    
     for class_name, num_aug in num_augmentations.items():
         class_input_folder = os.path.join(input_folder, class_name)
         class_train_folder = os.path.join(output_folder, 'train', class_name)
         class_val_folder = os.path.join(output_folder, 'val', class_name)
         class_test_folder = os.path.join(output_folder, 'test', class_name)
 
-        if not os.path.exists(class_train_folder):
-            os.makedirs(class_train_folder)
-        if not os.path.exists(class_val_folder):
-            os.makedirs(class_val_folder)
-        if not os.path.exists(class_test_folder):
-            os.makedirs(class_test_folder)
+        os.makedirs(class_train_folder, exist_ok=True)
+        os.makedirs(class_val_folder, exist_ok=True)
+        os.makedirs(class_test_folder, exist_ok=True)
 
         image_files = [filename for filename in os.listdir(class_input_folder) if filename.endswith('.png')]
         selected_image_files = random.sample(image_files, min(1000, len(image_files))) if len(image_files) > 1000 else image_files

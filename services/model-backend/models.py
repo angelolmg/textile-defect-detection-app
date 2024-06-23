@@ -13,6 +13,7 @@ from mlflow import MlflowClient
 import random
 import numpy as np
 import torch
+from mlflow.entities.model_registry import ModelVersion
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -252,6 +253,37 @@ def fetch_model():
             return jsonify({'error': 'Model file not found'}), 404
     except Exception as e:
         return jsonify({'error': f'Failed to fetch model: {str(e)}'}), 500
+
+def get_model_version_by_alias(name: str, alias: str) -> ModelVersion:
+    # This function should use mlflow to get the model version by alias
+    client = mlflow.tracking.MlflowClient()
+    model_version = client.get_model_version_by_alias(name, alias)
+    return model_version
+
+def delete_model_version(name: str, version: str) -> None:
+    # This function should use mlflow to delete the model version
+    client = mlflow.tracking.MlflowClient()
+    client.delete_model_version(name, version)
+
+@app.route('/api/mlflow/models', methods=['DELETE'])
+def delete_model():
+    model_alias = request.args.get('modelName')
+    model_name = "test01"
+
+    if not model_alias:
+        return jsonify({"error": "Model alias is required"}), 400
+
+    try:
+        # Step 1: Get the model version by alias
+        model_version = get_model_version_by_alias(model_name, model_alias)
+        version_number = model_version.version
+
+        # Step 2: Delete the model using the model name and version number
+        delete_model_version(model_name, version_number)
+
+        return jsonify({"message": f"Model {model_name} version {version_number} deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
 

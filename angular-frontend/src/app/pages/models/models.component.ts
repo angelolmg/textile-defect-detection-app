@@ -103,6 +103,20 @@ export class ModelsComponent implements OnInit {
     }
   }
 
+  deleteModel(modelName: string): void {
+    if (confirm('Are you sure you want to delete this model?')) {
+      this.modelsService.deleteModel(modelName).subscribe(
+        () => {
+          this.models = this.models.filter(model => model.modelName !== modelName);
+          alert(`Model with name ${modelName} deleted successfully`);
+        },
+        (error: any) => {
+          console.error('Error deleting model:', error);
+        }
+      );
+    }
+  }
+
   onSubmit(): void {
     if (this.trainModelForm.valid) {
       const formValue = this.trainModelForm.value;

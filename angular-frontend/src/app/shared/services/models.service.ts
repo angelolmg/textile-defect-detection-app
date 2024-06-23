@@ -38,4 +38,8 @@ export class ModelsService {
   getModelVersions(modelName: string): Observable<any> {
     return this.http.get<any>(`${this.mlflowUrl}?modelName=${modelName}`);
   }
+
+  deleteModel(modelName: string): Observable<any> {
+    return this.http.delete<any>(`${this.mlflowUrl}?modelName=${modelName}`);
+  }
 }

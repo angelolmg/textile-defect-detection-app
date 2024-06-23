@@ -9,6 +9,7 @@
         <th>Augmentation Recipe</th>
         <th>Description</th>
         <th>Model Architecture</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -19,10 +20,14 @@
         <td>{{ model.augmentation_recipe }}</td>
         <td>{{ model.description }}</td>
         <td>{{ model.model_architecture }}</td>
+        <td>
+          <button (click)="deleteModel(model.model_name)">Delete</button>
+        </td>
       </tr>
     </tbody>
   </table>
 </div>
+
 
 <div class="train-model-container">
   <h2>Train New Model</h2>
