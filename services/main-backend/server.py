@@ -111,7 +111,8 @@ def fetch_model_file(model_name: str):
     MLFLOW_SERVER_URL = "http://localhost:8090"
     response = requests.get(f"{MLFLOW_SERVER_URL}/fetch_model", params={'model': model_name})
     if response.status_code == 200:
-        model_file_path = os.path.join(BASE_DIR, 'models', f"{model_name}.pt")
+        model_file_path = os.path.join(BASE_DIR, 'models', "best.pt")
+        # model_file_path = os.path.join(BASE_DIR, 'models', f"{model_name}.pt")
         with open(model_file_path, 'wb') as f:
             f.write(response.content)
         return model_file_path
@@ -534,7 +535,7 @@ def process_frames_in_frames_folder():
         print(GREEN + "[process_frames_in_frames_folder]" + RESET + f" Number of patches: {len(images)}")
 
         # Defect inference
-        conf1 = 0.999
+        conf1 = 0.99
         results = model.predict(source=images)
 
         # Filter defects and collect neighbors cells (8 cells around central cell)

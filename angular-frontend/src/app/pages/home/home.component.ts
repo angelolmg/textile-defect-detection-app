@@ -30,7 +30,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   rollmaps: any[] = [];
   currentRollmapIndex: number = 0;
   models: string[] = [];
-  intervalDelayMs: number = 10000;
+  intervalDelayMs: number = 5000;
 
   classes: ClassColors = {
     'hole': 'red',

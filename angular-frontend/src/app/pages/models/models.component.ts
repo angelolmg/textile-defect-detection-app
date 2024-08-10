@@ -22,7 +22,7 @@ interface Model {
 })
 export class ModelsComponent implements OnInit {
   models: any[] = [];
-  modelArchitectures = ['yolov8s-cls.pt'];
+  modelArchitectures = ['yolov8n-cls.pt', 'yolov8s-cls.pt', 'yolov8m-cls.pt', 'yolov8l-cls.pt'];
   datasets: any[] = [];
   augmentationRecipes: any[] = [];
 

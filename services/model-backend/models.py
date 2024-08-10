@@ -100,12 +100,18 @@ def train_yolo_model(data, zip_path, dataset_info):
         mlflow.set_tag('patch.size', dataset_info['patch_size'])
 
         # Load the model
-        model = YOLO(model_architecture)
+        model = YOLO('models/' + str(model_architecture))
 
         # Train the model
         experiment_name = "YOLOv8 Experiments"
         run_name = str(uuid.uuid4())
-        model.train(data=model_folder, epochs=epochs, imgsz=64, seed=training_seed, name=run_name, project=experiment_name)
+        model.train(data=model_folder, 
+                    optimizer="AdamW", 
+                    epochs=epochs, 
+                    imgsz=64, 
+                    seed=training_seed, 
+                    name=run_name, 
+                    project=experiment_name)
         metrics = model.val()
 
         experiment = client.get_experiment_by_name(experiment_name)

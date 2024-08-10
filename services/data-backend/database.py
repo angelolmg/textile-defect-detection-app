@@ -10,6 +10,8 @@ import random
 from flask_cors import CORS
 from flask import Flask, request, jsonify, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -263,6 +265,7 @@ def check_dataset(dataset_name):
     else:
         return jsonify({'exists': False}), 200
 
+# Split and save images with augmentations
 def split_and_save_images(class_input_folder, class_output_folder, selected_image_files, num_aug, augmentations):
     for filename in selected_image_files:
         image_path = os.path.join(class_input_folder, filename)
@@ -272,34 +275,10 @@ def split_and_save_images(class_input_folder, class_output_folder, selected_imag
             new_image_path = os.path.join(class_output_folder, f"{os.path.splitext(filename)[0]}_{i+1}.png")
             Image.fromarray(augmented_image).save(new_image_path)
 
-def plot_class_distribution(input_folder, class_names):
-    class_image_counts = {class_name: len([filename for filename in os.listdir(os.path.join(input_folder, class_name)) if filename.endswith('.png')]) for class_name in class_names}
-    
-    classes = list(class_image_counts.keys())
-    counts = list(class_image_counts.values())
-    
-    plt.figure(figsize=(10, 6))
-    bars = plt.bar(classes, counts)
-    plt.xlabel('Class')
-    plt.ylabel('Number of Images')
-    plt.title('Initial Distribution of Images for Different Classes')
-    
-    for bar, count in zip(bars, counts):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), str(count), ha='center', va='bottom')
-    
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    
-    histogram_path = os.path.join(input_folder, 'class_distribution_histogram.png')
-    plt.savefig(histogram_path)
-    plt.close()
-
+# Create and split folders for train, val, test sets
 def create_and_split_folders(input_folder, output_folder, splits, num_augmentations, augmentations):
     train_split, val_split, test_split = splits
-    class_names = num_augmentations.keys()
-    
-    # Plot the initial distribution of images
-    plot_class_distribution(input_folder, class_names)
+    class_image_counts = {}
     
     for class_name, num_aug in num_augmentations.items():
         class_input_folder = os.path.join(input_folder, class_name)
@@ -318,6 +297,47 @@ def create_and_split_folders(input_folder, output_folder, splits, num_augmentati
         split_and_save_images(class_input_folder, class_val_folder, selected_image_files[int(len(selected_image_files) * train_split):int(len(selected_image_files) * (train_split + val_split))], num_aug, augmentations)
         split_and_save_images(class_input_folder, class_test_folder, selected_image_files[int(len(selected_image_files) * (train_split + val_split)):], num_aug, augmentations)
 
+        # Count images for each class
+        train_count = len(os.listdir(class_train_folder))
+        val_count = len(os.listdir(class_val_folder))
+        test_count = len(os.listdir(class_test_folder))
+        class_image_counts[class_name] = {'train': train_count, 'val': val_count, 'test': test_count}
+    
+    # Plot the distribution of images for each class
+    plot_image_distribution(class_image_counts, output_folder)
+
+# Plot the distribution of images for each class
+def plot_image_distribution(class_image_counts, output_folder):
+    classes = list(class_image_counts.keys())
+    train_counts = [class_image_counts[cls]['train'] for cls in classes]
+    val_counts = [class_image_counts[cls]['val'] for cls in classes]
+    test_counts = [class_image_counts[cls]['test'] for cls in classes]
+    
+    x = range(len(classes))
+    
+    plt.figure(figsize=(10, 6))
+    plt.bar(x, train_counts, width=0.2, label='Train', align='center')
+    plt.bar(x, val_counts, width=0.2, label='Val', align='center')
+    plt.bar(x, test_counts, width=0.2, label='Test', align='center', bottom=train_counts)
+    
+    plt.xlabel('Class')
+    plt.ylabel('Number of Images')
+    plt.title('Distribution of Images for Different Classes')
+    plt.xticks(ticks=x, labels=classes, rotation=45)
+    plt.legend()
+    
+    for i, (train_count, val_count, test_count) in enumerate(zip(train_counts, val_counts, test_counts)):
+        plt.text(i, train_count / 2, str(train_count), ha='center', va='bottom', color='white')
+        plt.text(i, train_count + val_count / 2, str(val_count), ha='center', va='bottom', color='white')
+        plt.text(i, train_count + val_count + test_count / 2, str(test_count), ha='center', va='bottom', color='white')
+    
+    plt.tight_layout()
+    
+    # Save the histogram plot
+    histogram_path = os.path.join(output_folder, 'class_distribution_histogram.png')
+    plt.savefig(histogram_path)
+    plt.close()
+    
 # Endpoint to augment and zip dataset
 @app.route('/api/augment', methods=['POST'])
 def augment_dataset():
