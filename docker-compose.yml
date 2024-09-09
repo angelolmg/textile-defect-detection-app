@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  angular-frontend:
+    build:
+      context: ./angular-frontend
+      dockerfile: Dockerfile
+    container_name: angular_frontend
+    ports:
+      - "4200:4200"
+
+  main-backend:
+    build:
+      context: ./services/main-backend
+      dockerfile: Dockerfile
+    container_name: flask_main_backend
+    ports:
+      - "8070:8070"
+    environment:
+      - FLASK_ENV=development
+
+  data-backend:
+    build:
+      context: ./services/data-backend
+      dockerfile: Dockerfile
+    container_name: flask_data_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - FLASK_ENV=development
+
+  model-backend:
+    build:
+      context: ./services/model-backend
+      dockerfile: Dockerfile
+    container_name: flask_model_backend
+    ports:
+      - "8090:8090"
+      - "5005:5005"
+    environment:
+      - FLASK_ENV=development

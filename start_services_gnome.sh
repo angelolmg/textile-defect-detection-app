@@ -21,15 +21,15 @@ open_tab() {
 open_tab "cd angular-frontend && ng serve"
 
 # Navigate to services/main-backend, activate virtual environment, and run server.py
-open_tab "cd services/main-backend && source bin/activate && python server.py"
+open_tab "cd services/main-backend && python server.py"
 
 # Navigate to services/data-backend, activate virtual environment, and run database.py
-open_tab "cd services/data-backend && source bin/activate && python database.py"
+open_tab "cd services/data-backend && python database.py"
 
 # Navigate to services/model-backend, activate virtual environment, and run models.py
-open_tab "cd services/model-backend && source bin/activate && python models.py"
+open_tab "cd services/model-backend && python models.py"
 
 # Run mlflow server on specified port
-open_tab "cd services/model-backend && source bin/activate && mlflow server --backend-store-uri runs/mlflow --port 5005"
+open_tab "cd services/model-backend && mlflow server --backend-store-uri runs/mlflow --port 5005"
 
 echo "All tasks initiated in separate terminal tabs."
