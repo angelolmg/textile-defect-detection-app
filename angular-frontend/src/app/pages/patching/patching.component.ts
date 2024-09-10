@@ -163,7 +163,7 @@ export class PatchingComponent implements OnInit {
   }
 
   onSubmit(): void {
-    const url = `http://localhost:8000/process_dataset`;
+    const url = `http://localhost:8070/process_dataset`;
     this.http.post(url, { datasetName: this.datasetName, coordinatesData: this.coordinatesData }).subscribe(
       (response: any) => {
         this.datasetSubmited = true;

@@ -9,3 +9,4 @@ uploaded_datasets
 datasets
 *.db
 *.pyc
+env

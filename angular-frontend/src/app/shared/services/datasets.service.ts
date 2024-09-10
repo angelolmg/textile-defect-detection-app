@@ -25,7 +25,7 @@ interface Dataset {
   providedIn: 'root'
 })
 export class DatasetsService {
-  private apiUrl = 'http://localhost:8000'; // Adjust this URL to your backend's URL
+  private apiUrl = 'http://localhost:8070'; // Adjust this URL to your backend's URL
   private dataUrl = 'http://localhost:8080'; // Adjust this URL to your backend's URL
 
   constructor(private http: HttpClient) { }

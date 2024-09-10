@@ -8,7 +8,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install the dependencies
-RUN pip install -r requirements.txt
+RUN apt-get update && apt-get install -y libgl1 && pip install -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .

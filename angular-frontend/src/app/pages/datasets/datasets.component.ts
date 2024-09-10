@@ -91,7 +91,7 @@ export class DatasetsComponent {
     headers.append('Content-Type', 'multipart/form-data');
 
     this.http
-      .post('http://localhost:8000/upload_images', formData, { headers })
+      .post('http://localhost:8070/upload_images', formData, { headers })
       .subscribe(
         (response) => {
           alert('Files uploaded successfully');
